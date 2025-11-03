@@ -1,5 +1,10 @@
 import { PLUGIN_NAME, RISU_ARGS, RisuArgType } from './plugin'
 
+export {
+    type EditFunction,
+    ScriptMode,
+}
+
 interface GlobalFetchArgs {
   plainFetchForce?: boolean;
   plainFetchDeforce?: boolean;
@@ -49,10 +54,10 @@ type PluginV2ProviderOptions = {
 type EditFunction = (content: string) => string | Promise<string>
 
 enum ScriptMode {
-    EditInput = 'editinput',
-    EditOutput = 'editoutput',
-    EditProcess = 'editprocess',
-    EditDisplay = 'editdisplay'
+    EditInput = 'input',
+    EditOutput = 'output',
+    EditProcess = 'process',
+    EditDisplay = 'display'
 }
 
 type ReplacerFunction = (content: any[], type: string) => any[] | Promise<any[]>

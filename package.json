@@ -1,13 +1,15 @@
 {
-  "name": "my-plugin",
-  "version": "1.0.0",
-  "description": "RisuAI Plugin using Svelte, TypeScript, and Tailwind CSS",
+  "name": "inlay-manager",
+  "version": "0.1.0",
+  "description": "RisuAPI Plugin for managing inlay assets.",
   "type": "module",
-  "main": "dist/my-plugin.js",
+  "main": "dist/inlay-manager.js",
   "scripts": {
     "build": "vite build"
   },
   "dependencies": {
+    "dexie": "^4.2.1",
+    "localforage": "^1.10.0",
     "lucide-svelte": "^0.548.0",
     "svelte": "^4.2.0"
   },

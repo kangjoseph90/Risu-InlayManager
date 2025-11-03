@@ -1,21 +1,13 @@
 //@ts-ignore
 import './style.css';
-import OpenButton from './OpenButton.svelte';
 import { RisuAPI } from './api';
+import { UI } from './ui';
+import { TimeTracker } from './tracker/time';
 
-/* Plugin Entry */
+const timeTracker = new TimeTracker();
+const ui = new UI();
 
-const container = document.createElement('div');
-document.body.appendChild(container);
-
-// Mount OpenButton component
-new OpenButton({
-    target: container,
-});
-
-// Cleanup OpenButton on unload
 RisuAPI.onUnload(() => {
-    if (container) {
-        container.remove();
-    }
+    timeTracker.destroy();
+    ui.destroy();
 })

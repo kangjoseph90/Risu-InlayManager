@@ -16,8 +16,8 @@ export default defineConfig({
   build: {
     lib: {
       entry: 'src/main.ts', // Plugin entry file
-      name: 'my-plugin', // Plugin name
-      fileName: () => 'my-plugin.js', // Output file name
+      name: 'inlay-manager', // Plugin name
+      fileName: () => 'inlay-manager.js', // Output file name
       formats: ['umd']
     },
     rollupOptions: {

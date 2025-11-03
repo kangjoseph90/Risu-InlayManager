@@ -1,13 +1,15 @@
 <script lang="ts">
-    import MyPopup from './MyPopup.svelte';
-    import { Settings } from 'lucide-svelte'
+    import Modal from './Modal.svelte';
+    import { Images } from 'lucide-svelte'
+
+    export let id: string;
 
     function onClick(): void {
         const container = document.createElement('div');
         document.body.appendChild(container);
         
         let popup: any;
-        popup = new MyPopup({
+        popup = new Modal({
             target: container,
             props: {
                 onClose: () => {
@@ -19,11 +21,7 @@
     }   
 </script>
 
-<div class="fixed top-10 right-4 z-50 flex justify-end">
-    <button
-        class="bg-gray-800 text-white rounded-full p-3 shadow translate-y-2 hover:bg-gray-700 focus:outline-none"
-        on:click={onClick}
-    >
-        <Settings size="28" color="white" />
-    </button>
-</div>
+<button class="flex gap-2 items-center hover:text-textcolor text-textcolor2" id={id} on:click={onClick}>
+    <Images  />
+    <span>갤러리</span>
+</button>
