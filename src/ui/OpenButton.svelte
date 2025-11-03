@@ -21,7 +21,7 @@
     }   
 </script>
 
-<button class="im-flex im-gap-2 im-items-center hover:im-text-textcolor im-text-textcolor2" id={id} on:click={onClick}>
+<button class="im-flex im-gap-2 im-items-center hover:text-textcolor text-textcolor2" id={id} on:click={onClick}>
     <Images  />
     <span>갤러리</span>
 </button>
