@@ -1,142 +1,140 @@
-## RisuAI Plugin Development Template
+# RIsu Inlay Manager Plugin
 
-This is a development template for creating plugins for RisuAI frontend. Plugins are built as single JavaScript files that are imported and executed by the RisuAI application.
+A RisuAI plugin for managing inlay assets (images, videos, and audio) with a user-friendly gallery interface.
+
+## Overview
+
+The RIsu Inlay Manager is a plugin for RisuAI that provides a comprehensive gallery interface to view and manage inlay assets. It automatically tracks and categorizes inlays by type (image, video, audio) and displays them in an organized interface with sorting capabilities.
 
 ## Features
 
-- TypeScript for type-safe development
-- Svelte for component-based UI
-- Tailwind CSS for styling
-- Lucide Svelte for icons
-- Single bundle output as UMD module
-- RisuAI API integration
+- **Gallery Interface**: Clean, tabbed interface for viewing inlays by type
+- **Asset Management**: View and organize images, videos, and audio files
+- **Automatic Tracking**: Automatically detects and categorizes new inlays as they're used
+- **Time-based Sorting**: Displays inlays sorted by most recently used
+- **Metadata Storage**: Tracks creation time and type information for each inlay
+- **Responsive Design**: Mobile-friendly interface that works across different screen sizes
 
-## Project Structure
+## Installation
+
+1. Build the plugin:
+```bash
+npm run build
+```
+
+2. The compiled plugin will be output to `dist/inlay-manager.js`
+
+3. Import the JavaScript file into RisuAI
+
+## Technical Architecture
+
+### Core Components
+
+#### Data Management
+- **InlayManager** ([`src/manager/inlay.ts`](src/manager/inlay.ts)): Handles storage and retrieval of inlay data using LocalForage
+- **TypeManager** ([`src/manager/meta.ts`](src/manager/meta.ts)): Manages type metadata for inlays using Dexie (IndexedDB)
+- **TimeManager** ([`src/manager/meta.ts`](src/manager/meta.ts)): Tracks creation timestamps for inlays
+- **UrlManager** ([`src/manager/url.ts`](src/manager/url.ts)): Converts inlay data to displayable URLs with caching
+
+#### Tracking System
+- **TimeTracker** ([`src/tracker/time.ts`](src/tracker/time.ts)): Monitors content for inlay usage and timestamps
+- **TypeTracker** ([`src/tracker/type.ts`](src/tracker/type.ts)): Synchronizes inlay types and detects new/deleted inlays
+
+#### Event System
+- **InlayEventSystem** ([`src/events/InlayEventSystem.ts`](src/events/InlayEventSystem.ts)): Singleton event system for coordinating updates between components
+
+#### User Interface
+- **UI Manager** ([`src/ui/index.ts`](src/ui/index.ts)): Manages the UI lifecycle and button integration
+- **Modal Component** ([`src/ui/Modal.svelte`](src/ui/Modal.svelte)): Main gallery interface with tabs
+- **Tab Components**: Specialized views for each media type
+  - ImageTab ([`src/ui/tabs/ImageTab.svelte`](src/ui/tabs/ImageTab.svelte))
+  - VideoTab ([`src/ui/tabs/VideoTab.svelte`](src/ui/tabs/VideoTab.svelte))
+  - AudioTab ([`src/ui/tabs/AudioTab.svelte`](src/ui/tabs/AudioTab.svelte))
+
+### Data Flow
+
+1. **Detection**: TimeTracker scans content for inlay references using regex patterns
+2. **Tracking**: When new inlays are detected, their timestamps are recorded
+3. **Synchronization**: TypeTracker syncs metadata between storage systems
+4. **Display**: UI components listen for events and update the gallery view
+
+### Storage Architecture
+
+The plugin uses a dual-storage approach:
+- **LocalForage**: Stores the actual inlay data (blobs, base64 strings)
+- **Dexie (IndexedDB)**: Stores metadata (type, timestamps) for efficient querying
+
+## Development
+
+### Project Structure
 
 ```
 src/
-├── plugin.ts      - Plugin metadata and argument definitions (required)
-├── api.ts         - RisuAI plugin API interface (pre-configured)
-├── main.ts        - Entry point for the plugin
-├── style.css      - Tailwind styles with layer isolation
-├── MyPopup.svelte - Example Svelte component
-└── OpenButton.svelte - Example Svelte component
+├── api.ts              # RisuAI plugin API interface
+├── main.ts             # Plugin entry point
+├── plugin.ts           # Plugin metadata and configuration
+├── types.ts            # TypeScript type definitions
+├── events/             # Event system implementation
+│   └── InlayEventSystem.ts
+├── manager/            # Data management modules
+│   ├── inlay.ts        # Inlay data storage
+│   ├── meta.ts         # Metadata management
+│   └── url.ts          # URL conversion utilities
+├── tracker/            # Asset tracking modules
+│   ├── time.ts         # Time tracking
+│   └── type.ts         # Type synchronization
+└── ui/                 # User interface components
+    ├── index.ts        # UI manager
+    ├── Modal.svelte    # Main gallery modal
+    ├── OpenButton.svelte # Gallery button
+    └── tabs/           # Media type tabs
+        ├── index.ts
+        ├── ImageTab.svelte
+        ├── VideoTab.svelte
+        └── AudioTab.svelte
 ```
 
-## Setup and Configuration
+### Technologies Used
 
-### 1. Define Plugin Information
+- **TypeScript**: Type-safe development
+- **Svelte**: Component-based UI framework
+- **Tailwind CSS**: Utility-first styling (with `im-` prefix to avoid conflicts)
+- **Dexie**: IndexedDB wrapper for metadata storage
+- **LocalForage**: Offline storage for inlay data
+- **Lucide Svelte**: Icon library
 
-Edit `src/plugin.ts` to define your plugin's metadata and arguments:
-
-```typescript
-const PLUGIN_TITLE = 'my-plugin'
-const PLUGIN_VERSION = 'v1.0.0'
-const PLUGIN_NAME = `${PLUGIN_TITLE}-${PLUGIN_VERSION}`
-
-const ARG1 = 'my_arg1'
-const ARG2 = 'my_arg2'
-
-const RISU_ARGS: RisuArgs = {
-    [ARG1]: RisuArgType.String,
-    [ARG2]: RisuArgType.Int,
-}
-```
-
-The plugin name and arguments are required and must follow this format.
-
-### 2. Configure Package Information
-
-Update `package.json` with your plugin name and description:
-
-```json
-{
-  "name": "your-plugin-name",
-  "version": "1.0.0",
-  "description": "Your plugin description"
-}
-```
-
-### 3. Update Vite Configuration
-
-Update `vite.config.ts` to match your plugin name:
-
-```typescript
-build: {
-  lib: {
-    fileName: () => 'your-plugin-name.js',
-  }
-}
-```
-
-## Building
-
-Build the plugin into a single JavaScript file:
+### Building
 
 ```bash
 npm run build
 ```
 
-The compiled plugin will be output to `dist/your-plugin-name.js`.
+The build process:
+1. Compiles TypeScript and Svelte components
+2. Bundles all code into a single UMD module
+3. Injects Tailwind CSS styles
+4. Outputs to `dist/inlay-manager.js`
 
-## Usage with RisuAI
+## Usage
 
-The built JavaScript file can be imported directly by RisuAI:
+1. After installation, a "갤러리" (Gallery) button will appear in the RisuAI settings
+2. Click the button to open the inlay gallery
+3. Use tabs to switch between image, video, and audio views
+4. Inlays are automatically sorted by most recently used
+5. The gallery updates automatically as new inlays are used in RisuAI
 
-The compiled bundle includes:
-- All Svelte components compiled to JavaScript
-- Tailwind CSS compiled and injected via JavaScript
-- The RisuAI plugin API integration
+## Plugin Metadata
 
-## Development
+- **Name**: InlayManager
+- **Version**: v0.1.0
+- **Type**: RisuAI Plugin
+- **Output**: Single JavaScript file (UMD module)
 
-### Using the RisuAI API
+## Contributing
 
-The `RisuAPI` interface from `src/api.ts` provides access to RisuAI functionality. Example:
+This plugin follows the RisuAI plugin development standards. When making changes:
 
-```typescript
-import { RisuAPI } from './api';
-
-RisuAPI.onUnload(() => {
-    // Cleanup code when plugin unloads
-});
-```
-
-### Building UI with Svelte
-
-Create Svelte components in the `src` directory and import them in `main.ts`:
-
-```typescript
-import MyComponent from './MyComponent.svelte';
-
-const app = new MyComponent({
-    target: document.body,
-});
-```
-
-Svelte provides superior event management and component reusability compared to raw JavaScript DOM manipulation.
-
-### Styling with Tailwind CSS
-
-Use Tailwind CSS classes directly in your components:
-
-```svelte
-<button class="px-4 py-2 bg-blue-500 text-white rounded">Click me</button>
-```
-## API Reference
-
-The RisuAPI provides methods for:
-- Fetching data from RisuAI backend
-- Managing plugin arguments
-- Registering event handlers
-- Lifecycle management
-
-See `src/api.ts` for the complete interface definition.
-
-## Output
-
-The build output is a single UMD module:
-- File: `dist/your-plugin-name.js`
-- Ready to import and execute in RisuAI
-- CSS automatically injected on load
-- No external dependencies required
+1. Ensure TypeScript types are properly maintained
+2. Follow the existing component structure
+3. Test with different media types
+4. Verify responsive design functionality

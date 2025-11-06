@@ -1,40 +1,29 @@
 import { InlayManager } from "../manager/inlay";
 import { TypeManager } from "../manager/meta";
-import { InlayEventSystem, InlayEventType } from "../events/InlayEventSystem";
+
+// Global queue variables
+let syncQueue: Set<string> = new Set();
+let deleteQueue: Set<string> = new Set();
+let isProcessing = false;
+let processingInterval: NodeJS.Timeout | null = null;
 
 export class TypeTracker {
-    private static eventSystem = InlayEventSystem.getInstance();
+    private processingIntervalMs = 1000; // Check queue every second
     
-    /**
-     * 단일 키에 대한 동기화를 수행합니다.
-     * @param key 동기화할 키
-     * @returns 동기화 성공 여부
-     */
-    static async syncKey(key: string): Promise<boolean> {
+    constructor() {
+        this.startBackgroundProcessor();
+    }
+    
+    private async syncKey(key: string): Promise<boolean> {
         try {
-            // 이미 타입 정보가 있는지 확인
             const existingType = await TypeManager.getType(key);
             if (existingType) {
-                return false; // 이미 존재하므로 동기화 불필요
+                return false; 
             }
             
-            // InlayManager에서 키가 실제로 존재하는지 확인
-            const inlayKeys = await InlayManager.getKeys();
-            if (!inlayKeys.includes(key)) {
-                return false; // 키가 존재하지 않음
-            }
-            
-            // Inlay 데이터 가져오기
             const inlayData = await InlayManager.getInlayData(key);
             if (inlayData && inlayData.type) {
                 await TypeManager.setType(key, inlayData.type);
-                
-                // 개별 키 추가 이벤트 발생
-                this.eventSystem.emit(InlayEventType.DATA_ADDED, {
-                    keys: [key],
-                    source: 'TypeTracker.syncKey'
-                });
-                
                 return true;
             }
             
@@ -45,41 +34,79 @@ export class TypeTracker {
         }
     }
     
-    /**
-     * 전체 동기화를 수행합니다.
-     * syncKey 메서드를 사용하여 각 키를 개별적으로 처리합니다.
-     */
-    static async sync() {
+    private async processQueues(): Promise<void> {
+        if (isProcessing || (syncQueue.size === 0 && deleteQueue.size === 0)) {
+            return;
+        }
+        
+        isProcessing = true;
+        
+        try {
+            let keysToDelete: string[] = [];
+            
+            if (deleteQueue.size > 0) {
+                keysToDelete = Array.from(deleteQueue);
+                deleteQueue.clear();
+                
+                await TypeManager.bulkDelete(keysToDelete);
+            }
+            
+            if (syncQueue.size > 0) {
+                const keysToSync = Array.from(syncQueue);
+                syncQueue.clear();
+                
+                const syncedKeys: string[] = [];
+                
+                for (const key of keysToSync) {
+                    const success = await this.syncKey(key);
+                    if (success) {
+                        syncedKeys.push(key);
+                    }
+                }
+            }
+        } catch (error) {
+            console.error('Error processing queues:', error);
+        } finally {
+            isProcessing = false;
+        }
+    }
+    
+    private startBackgroundProcessor(): void {
+        if (processingInterval) {
+            clearInterval(processingInterval);
+        }
+        
+        processingInterval = setInterval(() => {
+            this.processQueues();
+        }, this.processingIntervalMs);
+    }
+    
+    private stopBackgroundProcessor(): void {
+        if (processingInterval) {
+            clearInterval(processingInterval);
+            processingInterval = null;
+        }
+    }
+    
+    static async sync(): Promise<void> {
         const inlayKeys = await InlayManager.getKeys();
         const typeKeys = await TypeManager.getKeys();
 
         const newKeys = inlayKeys.filter(key => !typeKeys.includes(key));
         const deletedKeys = typeKeys.filter(key => !inlayKeys.includes(key));
         
-        // 새로운 키들에 대해 개별 동기화 수행
-        const syncedKeys: string[] = [];
-        for (const key of newKeys) {
-            const success = await this.syncKey(key);
-            if (success) {
-                syncedKeys.push(key);
-            }
-        }
-
-        // 삭제된 키들 일괄 처리
-        if (deletedKeys.length > 0) {
-            await TypeManager.bulkDelete(deletedKeys);
-            
-            // 삭제된 키들에 대한 이벤트 발생
-            deletedKeys.forEach(key => {
-                this.eventSystem.emit(InlayEventType.DATA_REMOVED, { key });
-            });
-        }
-        
-        // sync 완료 이벤트 발생
-        this.eventSystem.emit(InlayEventType.SYNC_COMPLETED, {
-            newKeys: syncedKeys,
-            deletedKeys,
-            totalKeys: inlayKeys.length
+        newKeys.forEach(key => {
+            syncQueue.add(key);
         });
+        
+        deletedKeys.forEach(key => {
+            deleteQueue.add(key);
+        });
+    }
+
+    destroy(): void {
+        this.stopBackgroundProcessor();
+        syncQueue.clear();
+        deleteQueue.clear();
     }
 }

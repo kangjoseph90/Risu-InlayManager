@@ -1,4 +1,5 @@
 import type { InlayData } from "../types";
+import { InlayManager } from "./inlay";
 
 const urlCache = new Map<string, string>();
 
@@ -17,10 +18,16 @@ function base64ToBlob(b64: string): Blob {
 }
 
 export class UrlManager {
-    static async getDataURL(key: string, data: InlayData): Promise<string> {
+    static async getDataURL(key: string): Promise<string> {
         if (urlCache.has(key)) {
             return urlCache.get(key)!;
         }
+
+        const data = await InlayManager.getInlayData(key);
+        if (!data) {
+            return '';
+        }
+
         if (typeof data.data === 'string') {
             const blob = base64ToBlob(data.data);
             const url = URL.createObjectURL(blob);
@@ -32,5 +39,12 @@ export class UrlManager {
             return url;
         }
         return '';
+    }
+
+    static revokeAll(): void {
+        for (const url of urlCache.values()) {
+            URL.revokeObjectURL(url);
+        }
+        urlCache.clear();
     }
 }

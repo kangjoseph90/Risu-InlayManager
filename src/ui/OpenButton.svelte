@@ -6,6 +6,7 @@
 
     function onClick(): void {
         const container = document.createElement('div');
+        container.id = 'inlay-manager-container';
         document.body.appendChild(container);
         
         let popup: any;
@@ -21,7 +22,7 @@
     }   
 </script>
 
-<button class="im-flex im-gap-2 im-items-center hover:text-textcolor text-textcolor2" id={id} on:click={onClick}>
+<button class="flex gap-2 items-center hover:text-textcolor text-textcolor2" id={id} on:click={onClick}>
     <Images  />
     <span>갤러리</span>
 </button>

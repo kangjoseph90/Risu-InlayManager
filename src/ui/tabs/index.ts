@@ -1,9 +1,5 @@
-import AudioTab from './AudioTab.svelte'
-import VideoTab from './VideoTab.svelte'
-import ImageTab from './ImageTab.svelte'
+import AssetTab from './AssetTab.svelte'
 
 export {
-    AudioTab,
-    VideoTab,
-    ImageTab
+    AssetTab
 }

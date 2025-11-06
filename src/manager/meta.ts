@@ -1,7 +1,7 @@
 import Dexie, { type EntityTable } from "dexie";
 import { PLUGIN_TITLE } from "../plugin";
 import type { InlayType } from "../types";
-import { InlayEventSystem, InlayEventType } from "../events/InlayEventSystem";
+import { InlayEventSystem, InlayEventType } from "../events/inlay";
 
 interface TypeEntry {
     key: string;
@@ -24,8 +24,6 @@ db.version(1).stores({
 })
 
 export class TypeManager {
-    private static eventSystem = InlayEventSystem.getInstance();
-    
     static async getKeys(type?: InlayType): Promise<string[]> {
         const keys = type
             ? await db.type.where('type').equals(type).primaryKeys()
@@ -42,21 +40,19 @@ export class TypeManager {
         const entry = await db.type.get(key);
         if (!entry) {
             await db.type.put({ key, type });
-            this.eventSystem.emit(InlayEventType.TYPE_CHANGED, { key, type });
+            InlayEventSystem.emit(InlayEventType.DATA_ADDED, { key, type });
         }
     }
 
     static async bulkDelete(keys: string[]): Promise<void> {
         await db.type.bulkDelete(keys);
-        // 삭제된 키들에 대해 이벤트 발생
         keys.forEach(key => {
-            this.eventSystem.emit(InlayEventType.DATA_REMOVED, { key });
+            InlayEventSystem.emit(InlayEventType.DATA_REMOVED, { key });
         });
     }
 }
 
 export class TimeManager {
-    private static eventSystem = InlayEventSystem.getInstance();
     
     static async getKeys(): Promise<string[]> {
         return await db.time.toArray().then(entries => entries.map(entry => String(entry.key)));
@@ -67,18 +63,18 @@ export class TimeManager {
         return entry?.timestamp;
     }
 
-    static async setTime(key: string, timestamp: Date): Promise<boolean> {
+    static async setTime(key: string, timestamp: Date): Promise<void> {
         const entry = await db.time.get(key);
         if (!entry) {
             await db.time.put({ key, timestamp });
-            this.eventSystem.emit(InlayEventType.TIME_UPDATED, { key, timestamp });
-            return true; // 새로운 키가 추가됨
+            InlayEventSystem.emit(InlayEventType.TIME_ADDED, { key, timestamp });
         }
-        return false; // 이미 존재하는 키
     }
 
     static async bulkDelete(keys: string[]): Promise<void> {
         await db.time.bulkDelete(keys);
-        
+        keys.forEach(key => {
+            InlayEventSystem.emit(InlayEventType.TIME_REMOVED, { key });
+        });
     }
 }
