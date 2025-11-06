@@ -34,7 +34,7 @@
             </div>
             
             <!-- Body Container -->
-            <div class="flex-1 overflow-y-auto min-h-0 pt-2">
+            <div class="flex-1 overflow-y-auto min-h-0 mt-2">
                 <AssetTab />
             </div>
         </div>
