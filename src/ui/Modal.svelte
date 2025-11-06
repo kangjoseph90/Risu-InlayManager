@@ -14,11 +14,11 @@
 
 <!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
 <div
-  class="fixed inset-0 bg-black/60 z-50 flex items-center justify-center"
-  on:click={onClose}
-  on:keydown={(e) => e.key === 'Escape' && onClose()}
-  role="button"
-  tabindex="0"
+    class="fixed inset-0 bg-black/60 z-50 flex items-center justify-center"
+    on:click={onClose}
+    on:keydown={(e) => e.key === 'Escape' && onClose()}
+    role="button"
+    tabindex="0"
 >
     <!-- svelte-ignore a11y-click-events-have-key-events -->
     <div class="flex justify-center w-full h-full">

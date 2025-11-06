@@ -4,7 +4,7 @@
     import { TimeManager } from "../../manager/time";
     import { InlayManager } from "../../manager/inlay";
     import { UrlManager } from "../../manager/url";
-    import AssetViewer from "../components/AssetViewer.svelte";
+    import { AssetViewer, AssetPopup } from "../components";
     import { Image, Video, Music, Download, CheckCircle2, X } from "lucide-svelte";
     
     // Selection mode state
@@ -13,6 +13,10 @@
     let longPressTimer: number | null = null;
     let longPressKey: string | null = null;
     const LONG_PRESS_DURATION = 500; // ms
+    
+    // Popup state
+    let showPopup = false;
+    let popupKey: string = '';
     
     let keyMetaMap = new Map<string, { time: Date, type: InlayType }>();
     let sortedKeys: string[] = [];
@@ -46,8 +50,15 @@
         
         if (selectionMode) {
             toggleAssetSelection(key);
+        } else {
+            // Open popup in normal mode
+            popupKey = key;
+            showPopup = true;
         }
-        // Normal click behavior (like opening preview) can be added here
+    }
+    
+    function closePopup() {
+        showPopup = false;
     }
     
     function toggleAssetSelection(key: string) {
@@ -91,15 +102,6 @@
                 visibleKeys = visibleKeys; // Trigger reactivity
             }
         }, options);
-        
-        // Use setTimeout to ensure DOM is rendered before observing
-        setTimeout(() => {
-            // Observe all asset elements
-            const assetElements = containerElement.querySelectorAll('[data-asset-item]');
-            assetElements.forEach(el => {
-                intersectionObserver.observe(el);
-            });
-        }, 0);
     }
     
     // Function to observe a single asset element (Svelte action)
@@ -227,40 +229,20 @@
                 use:observeAssetElement
             >
                 <!-- Asset Viewer with Lazy Loading -->
-                {#if visibleKeys.has(key)}
-                    <AssetViewer
-                        {key}
-                        type={meta.type}
-                        width="w-full"
-                        height="h-full"
-                        objectFit={meta.type === InlayType.Audio ? "object-contain" : "object-cover"}
-                        showControls={false}
-                        isVisible={true}
-                    />
-                {:else}
-                    <!-- Placeholder for non-visible items -->
-                    <div class="w-full h-full bg-gradient-to-br from-zinc-800 to-zinc-900 flex items-center justify-center">
-                        <div class="w-8 h-8 rounded-full border-2 border-zinc-600 border-t-blue-500 animate-spin" />
-                    </div>
-                {/if}
+                <AssetViewer
+                    {key}
+                    type={meta.type}
+                    width="w-full"
+                    height="h-full"
+                    objectFit={meta.type === InlayType.Audio ? "object-contain" : "object-cover"}
+                    showControls={false}
+                    isVisible={visibleKeys.has(key)}
+                />
 
                 <!-- Gradient Overlay for better icon visibility -->
                 {#if meta.type !== InlayType.Image && !selectionMode && visibleKeys.has(key)}
                     <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent 
                                 opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
-                {/if}
-
-                <!-- Play Icon Overlay for Video/Audio -->
-                {#if meta.type !== InlayType.Image && !selectionMode && visibleKeys.has(key)}
-                    <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
-                        <div class="w-14 h-14 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center
-                                    opacity-0 group-hover:opacity-100 transition-all duration-200 
-                                    group-hover:scale-110">
-                            <svg class="w-7 h-7 text-white ml-1" fill="currentColor" viewBox="0 0 20 20">
-                                <path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z" />
-                            </svg>
-                        </div>
-                    </div>
                 {/if}
 
                 <!-- Selection Checkmark -->
@@ -296,8 +278,17 @@
             <div class="p-6 rounded-full bg-zinc-800/50 mb-4">
                 <Image class="w-16 h-16" />
             </div>
-            <p class="text-xl font-semibold text-zinc-300">자산이 없습니다</p>
-            <p class="text-sm mt-2 text-zinc-500">RisuAI에서 인레이를 추가해주세요</p>
+            <p class="text-xl font-semibold text-zinc-300">인레이 에셋이 없습니다</p>
         </div>
     {/each}
 </div>
+
+<!-- Asset Popup -->
+{#if showPopup && popupKey}
+    <AssetPopup
+        currentKey={popupKey}
+        allKeys={sortedKeys}
+        {keyMetaMap}
+        onClose={closePopup}
+    />
+{/if}
