@@ -5,7 +5,7 @@
     import { InlayManager } from "../../manager/inlay";
     import { UrlManager } from "../../manager/url";
     import { AssetViewer, AssetPopup } from "../components";
-    import { Image, Video, Music, Download, CheckCircle2, X } from "lucide-svelte";
+    import { Image, Video, Music, Download, Check, X, Trash2 } from "lucide-svelte";
     
     // Selection mode state
     let selectionMode = false;
@@ -142,6 +142,27 @@
         exitSelectionMode();
     }
 
+    async function deleteSelected() {
+        if (selectedAssets.size === 0) return;
+        
+        // Confirm deletion
+        const confirmed = confirm(`${selectedAssets.size}개의 에셋을 삭제하시겠습니까?`);
+        if (!confirmed) return;
+        
+        try {
+            for (const key of selectedAssets) {
+                await InlayManager.deleteInlay(key);
+            }
+            
+            // Reload metadata
+            await loadMetadatas();
+            exitSelectionMode();
+        } catch (error) {
+            console.error('Failed to delete assets:', error);
+            alert('에셋 삭제에 실패했습니다.');
+        }
+    }
+
     async function loadMetadatas() {
         const keys = await InlayManager.getKeys();
         const newMap = new Map<string, { time: Date, type: InlayType }>();
@@ -188,16 +209,28 @@
                     {selectedAssets.size}개 선택됨
                 </span>
             </div>
-            <button 
-                on:click={downloadSelected}
-                disabled={selectedAssets.size === 0}
-                class="flex items-center gap-2 px-4 py-2 bg-white text-blue-600 rounded-lg 
-                       hover:bg-blue-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed
-                       font-medium shadow-md"
-            >
-                <Download class="w-5 h-5" />
-                다운로드
-            </button>
+            <div class="flex items-center gap-2">
+                <button 
+                    on:click={deleteSelected}
+                    disabled={selectedAssets.size === 0}
+                    class="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg 
+                           hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed
+                           font-medium shadow-md"
+                >
+                    <Trash2 class="w-5 h-5" />
+                    삭제
+                </button>
+                <button 
+                    on:click={downloadSelected}
+                    disabled={selectedAssets.size === 0}
+                    class="flex items-center gap-2 px-4 py-2 bg-white text-blue-600 rounded-lg 
+                           hover:bg-blue-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed
+                           font-medium shadow-md"
+                >
+                    <Download class="w-5 h-5" />
+                    다운로드
+                </button>
+            </div>
         </div>
     </div>
 {/if}
@@ -250,7 +283,7 @@
                     <div class="absolute top-2 right-2 z-10">
                         {#if selectedAssets.has(key)}
                             <div class="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center shadow-lg">
-                                <CheckCircle2 class="w-6 h-6 text-white" />
+                                <Check class="w-6 h-6 text-white" />
                             </div>
                         {:else}
                             <div class="w-8 h-8 rounded-full border-2 border-white bg-black/30 backdrop-blur-sm" />

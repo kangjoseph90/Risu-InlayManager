@@ -14,4 +14,8 @@ export class InlayManager {
     static async getInlayData(key: string): Promise<InlayData | null> {
         return await db.getItem(key) as InlayData | null;
     }
+
+    static async deleteInlay(key: string): Promise<void> {
+        await db.removeItem(key);
+    }
 }

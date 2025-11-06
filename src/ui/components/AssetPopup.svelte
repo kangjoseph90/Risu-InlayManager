@@ -16,6 +16,11 @@
     let loading = true;
     let error: string | null = null;
     
+    // Swipe gesture tracking
+    let touchStartX = 0;
+    let touchEndX = 0;
+    const SWIPE_THRESHOLD = 50; // pixels
+    
     // Load asset data
     async function loadAssetData() {
         try {
@@ -77,6 +82,31 @@
         }
     }
     
+    // Handle touch start
+    function handleTouchStart(e: TouchEvent) {
+        touchStartX = e.touches[0].clientX;
+    }
+    
+    // Handle touch end for swipe detection
+    function handleTouchEnd(e: TouchEvent) {
+        touchEndX = e.changedTouches[0].clientX;
+        handleSwipe();
+    }
+    
+    // Detect swipe direction
+    function handleSwipe() {
+        const diff = touchStartX - touchEndX;
+        
+        // Swiped left (show next)
+        if (diff > SWIPE_THRESHOLD) {
+            navigateNext();
+        }
+        // Swiped right (show previous)
+        else if (diff < -SWIPE_THRESHOLD) {
+            navigatePrev();
+        }
+    }
+    
     onMount(() => {
         window.addEventListener('keydown', handleKeydown);
         // Prevent body scroll when popup is open
@@ -95,7 +125,10 @@
 <!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
 <div
     class="fixed inset-0 bg-black/60 z-50 flex items-center justify-center"
-    on:click={handleBackgroundClick} role="button"
+    on:click={handleBackgroundClick}
+    on:touchstart={handleTouchStart}
+    on:touchend={handleTouchEnd}
+    role="button"
     tabindex="0"
 >
     <button
