@@ -21,7 +21,6 @@
     
     let keyMetaMap = new Map<string, Date>();
     let sortedKeys: string[] = [];
-    let sortedAssets: Array<{ key: string, meta: Date }> = [];
     
     // Virtual grid state
     let virtualGrid: any;
@@ -31,8 +30,8 @@
     $: {
         visibleKeys.clear();
         for (const index of visibleIndices) {
-            if (sortedAssets[index]) {
-                visibleKeys.add(sortedAssets[index].key);
+            if (sortedKeys[index]) {
+                visibleKeys.add(sortedKeys[index]);
             }
         }
     }
@@ -148,7 +147,6 @@
             
         keyMetaMap = newMap;
         sortedKeys = sortedArray.map(([key, _]) => key);
-        sortedAssets = sortedArray.map(([key, meta]) => ({ key, meta }));
     }
     
     onMount(async () => {
@@ -202,7 +200,7 @@
     </div>
 {/if}
 
-{#if sortedAssets.length === 0}
+{#if sortedKeys.length === 0}
     <div class="flex flex-col items-center justify-center min-h-[400px] text-zinc-400 p-4">
         <div class="p-6 rounded-full bg-zinc-800/50 mb-4">
             <Image class="w-16 h-16" />
@@ -213,12 +211,11 @@
     <VirtualGrid 
         bind:this={virtualGrid}
         bind:visibleIndices={visibleIndices}
-        items={sortedAssets} 
+        items={sortedKeys} 
         itemHeight={200} 
         let:item 
-        let:index
     >
-        {@const key = item.key}
+        {@const key = item}
         <div
             data-asset-item
             data-key={key}

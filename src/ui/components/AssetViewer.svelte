@@ -9,9 +9,6 @@
     export let height: string = "h-full";
     export let objectFit: string = "object-cover";
     export let showControls: boolean = true;
-    export let autoplay: boolean = false;
-    export let loop: boolean = false;
-    export let muted: boolean = false;
     export let isVisible: boolean = true; // For lazy loading
 
     let dataURL: string = '';
@@ -47,17 +44,6 @@
     $: if (isVisible && key) {
         loadAsset();
     }
-    
-    function handleMediaLoaded() {
-        if (autoplay) {
-            const element = videoElement || audioElement;
-            if (element) {
-                element.play().catch(err => {
-                    console.warn('Autoplay was prevented:', err);
-                });
-            }
-        }
-    }
 </script>
 
 <div class="{width} {height} relative flex items-center justify-center bg-zinc-900">
@@ -85,12 +71,10 @@
                     src={dataURL}
                     class="absolute inset-0 {width} {height} {objectFit} bg-zinc-800"
                     controls={showControls}
-                    {autoplay}
-                    {loop}
-                    {muted}
+                    autoplay={false}
+                    muted={true}
                     preload="metadata"
                     playsinline
-                    on:loadedmetadata={handleMediaLoaded}
                 >
                     <track kind="captions" />
                     해당 브라우저는 비디오를 지원하지 않습니다.
@@ -106,10 +90,9 @@
                         src={dataURL}
                         class="w-full max-w-md"
                         controls={showControls}
-                        {autoplay}
-                        {loop}
+                        autoplay={false}
+                        muted={true}
                         preload="metadata"
-                        on:loadedmetadata={handleMediaLoaded}
                     >
                         해당 브라우저는 오디오를 지원하지 않습니다.
                     </audio>

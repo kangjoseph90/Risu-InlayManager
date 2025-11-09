@@ -14,7 +14,9 @@
     let type: InlayType = InlayType.Image;
     let loading = true;
     let error: string | null = null;
-    
+    let videoElement: HTMLVideoElement;
+    let audioElement: HTMLAudioElement;
+
     // Swipe gesture tracking
     let touchStartX = 0;
     let touchEndX = 0;
@@ -107,10 +109,9 @@
             navigatePrev();
         }
     }
-    
+
     onMount(() => {
         window.addEventListener('keydown', handleKeydown);
-        // Prevent body scroll when popup is open
         document.body.style.overflow = 'hidden';
     });
     
@@ -155,9 +156,10 @@
                 {#if type === InlayType.Audio}
                     <div class="w-96 bg-zinc-900 rounded-2xl shadow-2xl">
                         <audio
+                            bind:this={audioElement}
                             src={dataURL}
                             controls
-                            autoplay
+                            autoplay={false}
                             class="w-full"
                         >
                             브라우저가 오디오를 지원하지 않습니다.
@@ -166,9 +168,10 @@
                 {:else if type === InlayType.Video}
                     <!-- svelte-ignore a11y-media-has-caption -->
                     <video
+                        bind:this={videoElement}
                         src={dataURL}
                         controls
-                        autoplay
+                        autoplay={false}
                         class="max-w-full max-h-[85vh]"
                     >
                         브라우저가 동영상을 지원하지 않습니다.
