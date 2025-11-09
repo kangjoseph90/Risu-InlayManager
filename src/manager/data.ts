@@ -2,10 +2,19 @@ import { InlayType } from "../types";
 import { InlayManager } from "./inlay";
 import { Queue } from '@datastructures-js/queue';
 
-
+// Cache management
 const dataCache = new Map<string, { url: string, type: InlayType }>();
 const dataEntry = new Queue<string>();
 const MAX_CACHE_SIZE = 100;
+
+// Request concurrency control
+const MAX_CONCURRENT_REQUESTS = 5;
+let activeRequests = 0;
+const requestQueue: Array<{
+    key: string;
+    resolve: (value: { url: string, type: InlayType } | null) => void;
+    reject: (reason?: any) => void;
+}> = [];
 
 function base64ToBlob(b64: string): Blob {
     const splitDataURI = b64.split(',');
@@ -33,9 +42,43 @@ export class DataManager {
     }
 
     static async getData(key: string): Promise<{ url: string, type: InlayType } | null> {
+        // Check cache first
         if (dataCache.has(key)) {
             return dataCache.get(key)!;
         }
+
+        // Use request queue for concurrency control
+        return new Promise((resolve, reject) => {
+            requestQueue.push({ key, resolve, reject });
+            this.processQueue();
+        });
+    }
+
+    private static async processQueue(): Promise<void> {
+        // Process requests up to the concurrency limit
+        while (activeRequests < MAX_CONCURRENT_REQUESTS && requestQueue.length > 0) {
+            const request = requestQueue.shift();
+            if (!request) break;
+
+            activeRequests++;
+            
+            // Execute the actual data loading
+            this.loadDataInternal(request.key)
+                .then(request.resolve)
+                .catch(request.reject)
+                .finally(() => {
+                    activeRequests--;
+                    this.processQueue(); // Process next item in queue
+                });
+        }
+    }
+
+    private static async loadDataInternal(key: string): Promise<{ url: string, type: InlayType } | null> {
+        // Double-check cache (might have been loaded while waiting in queue)
+        if (dataCache.has(key)) {
+            return dataCache.get(key)!;
+        }
+
         const data = await InlayManager.getInlayData(key);
         if (!data) {
             return null;

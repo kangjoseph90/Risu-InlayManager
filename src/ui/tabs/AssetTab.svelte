@@ -4,6 +4,7 @@
     import { TimeManager } from "../../manager/time";
     import { InlayManager } from "../../manager/inlay";
     import { AssetViewer, AssetPopup } from "../components";
+    import VirtualGrid from "../components/VirtualGrid.svelte";
     import { Image, Video, Music, Download, Check, X, Trash2 } from "lucide-svelte";
     import { DataManager } from "../../manager/data";
     
@@ -20,10 +21,21 @@
     
     let keyMetaMap = new Map<string, Date>();
     let sortedKeys: string[] = [];
+    let sortedAssets: Array<{ key: string, meta: Date }> = [];
     
-    // Lazy loading state 
+    // Virtual grid state
+    let virtualGrid: any;
+    let visibleIndices = new Set<number>();
     let visibleKeys = new Set<string>();
-    let intersectionObserver: IntersectionObserver;
+    
+    $: {
+        visibleKeys.clear();
+        for (const index of visibleIndices) {
+            if (sortedAssets[index]) {
+                visibleKeys.add(sortedAssets[index].key);
+            }
+        }
+    }
     
     // Functions for selection mode
     function startLongPress(key: string) {
@@ -75,49 +87,7 @@
         selectedAssets.clear();
         selectedAssets = selectedAssets;
     }
-    
-    // Setup Intersection Observer for lazy loading
-    function setupIntersectionObserver(containerElement: HTMLDivElement) {
-        // Stop observing old elements
-        if (intersectionObserver) {
-            intersectionObserver.disconnect();
-        }
-        
-        const options = {
-            root: null,
-            rootMargin: '150px', // Start loading 150px before/after viewport
-            threshold: 0
-        };
-        
-        intersectionObserver = new IntersectionObserver((entries) => {
-            for (const entry of entries) {
-                const key = entry.target.getAttribute('data-key');
-                if (!key) continue;
-                
-                if (entry.isIntersecting) {
-                    visibleKeys.add(key);
-                } else {
-                    visibleKeys.delete(key);
-                }
-                visibleKeys = visibleKeys; // Trigger reactivity
-            }
-        }, options);
-    }
-    
-    // Function to observe a single asset element (Svelte action)
-    function observeAssetElement(element: HTMLElement) {
-        if (intersectionObserver && element) {
-            intersectionObserver.observe(element);
-        }
-        
-        return {
-            destroy() {
-                if (intersectionObserver && element) {
-                    intersectionObserver.unobserve(element);
-                }
-            }
-        };
-    }
+
     
     async function downloadSelected() {
         if (selectedAssets.size === 0) return;
@@ -178,6 +148,7 @@
             
         keyMetaMap = newMap;
         sortedKeys = sortedArray.map(([key, _]) => key);
+        sortedAssets = sortedArray.map(([key, meta]) => ({ key, meta }));
     }
     
     onMount(async () => {
@@ -186,9 +157,6 @@
     
     onDestroy(() => {
         cancelLongPress();
-        if (intersectionObserver) {
-            intersectionObserver.disconnect();
-        }
     });
 </script>
 
@@ -234,64 +202,65 @@
     </div>
 {/if}
 
-<div 
-    class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 p-4"
-    use:setupIntersectionObserver
->
-    {#each sortedKeys as key (key)}
-        {@const meta = keyMetaMap.get(key)}
-        {#if meta}
-            <div
-                data-asset-item
-                data-key={key}
-                class="group relative aspect-square bg-zinc-900 rounded-xl overflow-hidden
-                       transition-all duration-200 cursor-pointer
-                       {selectionMode ? 'hover:scale-95' : 'hover:scale-105 hover:shadow-2xl hover:shadow-blue-500/20'}
-                       {selectedAssets.has(key) ? 'ring-4 ring-blue-500 scale-95' : 'hover:ring-2 hover:ring-blue-400/50'}"
-                on:mousedown={() => startLongPress(key)}
-                on:mouseup={cancelLongPress}
-                on:mouseleave={cancelLongPress}
-                on:touchstart={() => startLongPress(key)}
-                on:touchend={cancelLongPress}
-                on:touchcancel={cancelLongPress}
-                on:click={() => handleAssetClick(key)}
-                role="button"
-                tabindex="0"
-                on:keydown={(e) => e.key === 'Enter' && handleAssetClick(key)}
-                use:observeAssetElement
-            >
-                <!-- Asset Viewer with Lazy Loading -->
-                <AssetViewer
-                    {key}
-                    width="w-full"
-                    height="h-full"
-                    showControls={false}
-                    isVisible={visibleKeys.has(key)}
-                />
-
-                <!-- Selection Checkmark -->
-                {#if selectionMode}
-                    <div class="absolute top-2 right-2 z-10">
-                        {#if selectedAssets.has(key)}
-                            <div class="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center shadow-lg">
-                                <Check class="w-6 h-6 text-white" />
-                            </div>
-                        {:else}
-                            <div class="w-8 h-8 rounded-full border-2 border-white bg-black/30 backdrop-blur-sm" />
-                        {/if}
-                    </div>
-                {/if}
-            </div>
-        {/if}
-    {:else}
-        <div class="col-span-full flex flex-col items-center justify-center min-h-[400px] text-zinc-400">
-            <div class="p-6 rounded-full bg-zinc-800/50 mb-4">
-                <Image class="w-16 h-16" />
-            </div>
-            <p class="text-xl font-semibold text-zinc-300">인레이 에셋이 없습니다</p>
+{#if sortedAssets.length === 0}
+    <div class="flex flex-col items-center justify-center min-h-[400px] text-zinc-400 p-4">
+        <div class="p-6 rounded-full bg-zinc-800/50 mb-4">
+            <Image class="w-16 h-16" />
         </div>
-    {/each}
-</div>
+        <p class="text-xl font-semibold text-zinc-300">인레이 에셋이 없습니다</p>
+    </div>
+{:else}
+    <VirtualGrid 
+        bind:this={virtualGrid}
+        bind:visibleIndices={visibleIndices}
+        items={sortedAssets} 
+        itemHeight={200} 
+        let:item 
+        let:index
+    >
+        {@const key = item.key}
+        <div
+            data-asset-item
+            data-key={key}
+            class="group relative aspect-square bg-zinc-900 rounded-xl overflow-hidden
+                   transition-all duration-200 cursor-pointer
+                   {selectionMode ? 'hover:scale-95' : 'hover:scale-105 hover:shadow-2xl hover:shadow-blue-500/20'}
+                   {selectedAssets.has(key) ? 'ring-4 ring-blue-500 scale-95' : 'hover:ring-2 hover:ring-blue-400/50'}"
+            on:mousedown={() => startLongPress(key)}
+            on:mouseup={cancelLongPress}
+            on:mouseleave={cancelLongPress}
+            on:touchstart={() => startLongPress(key)}
+            on:touchend={cancelLongPress}
+            on:touchcancel={cancelLongPress}
+            on:click={() => handleAssetClick(key)}
+            role="button"
+            tabindex="0"
+            on:keydown={(e) => e.key === 'Enter' && handleAssetClick(key)}
+        >
+            <!-- Asset Viewer with Lazy Loading -->
+            <AssetViewer
+                {key}
+                width="w-full"
+                height="h-full"
+                showControls={false}
+                isVisible={visibleKeys.has(key)}
+            />
+
+            <!-- Selection Checkmark -->
+            {#if selectionMode}
+                <div class="absolute top-2 right-2 z-10">
+                    {#if selectedAssets.has(key)}
+                        <div class="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center shadow-lg">
+                            <Check class="w-6 h-6 text-white" />
+                        </div>
+                    {:else}
+                        <div class="w-8 h-8 rounded-full border-2 border-white bg-black/30 backdrop-blur-sm" />
+                    {/if}
+                </div>
+            {/if}
+        </div>
+    </VirtualGrid>
+{/if}
 
 <!-- Asset Popup -->
 {#if showPopup && popupKey}

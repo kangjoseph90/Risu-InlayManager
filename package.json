@@ -11,7 +11,8 @@
     "@datastructures-js/queue": "^4.3.0",
     "localforage": "^1.10.0",
     "lucide-svelte": "^0.548.0",
-    "svelte": "^4.2.0"
+    "svelte": "^4.2.0",
+    "svelte-virtual-list": "^3.0.1"
   },
   "devDependencies": {
     "@sveltejs/vite-plugin-svelte": "^3.0.0",
