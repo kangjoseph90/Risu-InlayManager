@@ -6,6 +6,7 @@ import { TimeTracker } from './tracker/time';
 import { ChatTracker } from './tracker/chat';
 import { TrackerManager } from './tracker/index';
 import { initManagers } from './manager';
+import { UpdateManager } from './manager/update';
 
 initManagers();
 
@@ -19,4 +20,8 @@ const ui = new UI();
 RisuAPI.onUnload(() => {
     trackerManager.destroy();
     ui.destroy();
-})
+});
+
+(async () => {
+    if (await UpdateManager.check()) return;
+})()

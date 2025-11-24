@@ -95,7 +95,13 @@ const rawAPI = {
     //@ts-ignore
     findCharacterbyId,
     //@ts-ignore
-    getCharImage
+    getCharImage,
+    //@ts-ignore
+    getDatabase,
+    //@ts-ignore
+    setDatabaseLite,
+    //@ts-ignore
+    loadPlugins,
 }
 
 function getFullName(name: string) {
@@ -116,6 +122,11 @@ function getFullName(name: string) {
  * - addRisuReplacer
  * - removeRisuReplacer
  * - onUnload
+ * - findCharacterbyId,
+ * - getCharImage,
+ * - getDatabase,
+ * - setDatabaseLite,
+ * - loadPlugins,
  */
 export class RisuAPI {
     static risuFetch(url: string, args?: GlobalFetchArgs): Promise<GlobalFetchResult> {
@@ -173,5 +184,14 @@ export class RisuAPI {
     }
     static async getCharImage(image: string, type: string): Promise<string> {
         return await rawAPI.getCharImage(image, type);
+    }
+    static getDatabase() {
+        return rawAPI.getDatabase();
+    }
+    static setDatabaseLite(db: any) {
+        rawAPI.setDatabaseLite(db);
+    }
+    static loadPlugins() {
+        rawAPI.loadPlugins();
     }
 }
