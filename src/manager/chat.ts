@@ -21,18 +21,6 @@ export class ChatManager {
 
     static async setChatData(key: string, data: ChatData): Promise<void> {
         const existingData = await chatDB.getItem<ChatData>(key);
-        // Only set if not exists, or update if different (though typically we want to capture the first occurrence or just ensure it's there)
-        // Based on "track when ondisplay", we should probably just save it.
-        // But if we want to avoid overwriting with same data redundantly, we can check.
-        // If the asset is seen in a different chat, should we update it?
-        // The requirement says "tracking", implying we record where it was found.
-        // Since the key is the asset ID, and one asset ID is likely unique to a generation,
-        // it probably doesn't change context often.
-        // If an asset is viewed again in the same context, no change.
-        // If it's viewed in a different context, we might want to update or keep the original.
-        // Let's assume we update it to the latest context seen.
-
-        // However, checking for existence first prevents unnecessary writes.
         if (existingData && existingData.charId === data.charId && existingData.chatId === data.chatId) {
             return;
         }

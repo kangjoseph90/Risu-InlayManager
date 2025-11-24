@@ -7,7 +7,7 @@
     import { RisuAPI } from "../../api";
     import { AssetViewer, AssetPopup } from "../components";
     import VirtualGrid from "../components/VirtualGrid.svelte";
-    import { Image, Video, Music, Download, Check, X, Trash2, Filter } from "lucide-svelte";
+    import { Image, Video, Music, Download, Check, X, Trash2, Filter, ChevronDown } from "lucide-svelte";
     import { DataManager } from "../../manager/data";
     
     // Selection mode state
@@ -46,6 +46,9 @@
 
     let selectedCharId: string = "";
     let selectedChatId: string = "";
+    
+    let showCharDropdown = false;
+    let showChatDropdown = false;
 
     // Touch scroll detection
     let touchStartY = 0;
@@ -72,6 +75,17 @@
 
     $: if (selectedChatId !== undefined) {
         loadMetadatas();
+    }
+    
+    // Handle click outside to close dropdowns
+    function handleWindowClick(event: MouseEvent) {
+        const target = event.target as HTMLElement;
+        if (!target.closest('[data-dropdown="char"]')) {
+            showCharDropdown = false;
+        }
+        if (!target.closest('[data-dropdown="chat"]')) {
+            showChatDropdown = false;
+        }
     }
 
     // Functions for selection mode
@@ -318,11 +332,13 @@
     }
     
     onMount(async () => {
+        window.addEventListener('click', handleWindowClick);
         await loadCharacters();
         await loadMetadatas();
     });
     
     onDestroy(() => {
+        window.removeEventListener('click', handleWindowClick);
         cancelLongPress();
     });
 </script>
@@ -330,34 +346,99 @@
 <div class="flex flex-col h-full">
     <!-- Filter Toolbar -->
     {#if !selectionMode}
-        <div class="flex items-center gap-2 p-2 bg-zinc-800/50 rounded-lg mb-2 flex-wrap">
+        <div class="flex items-center gap-2 p-2 bg-zinc-800/50 rounded-lg mb-2 flex-wrap z-20 relative">
             <div class="flex items-center gap-2">
                 <Filter size={18} class="text-zinc-400" />
                 <span class="text-sm font-medium text-zinc-300">Filters:</span>
             </div>
 
-            <!-- Character Filter -->
-            <select
-                class="bg-zinc-700 text-zinc-200 text-sm rounded px-2 py-1 outline-none focus:ring-2 focus:ring-blue-500 border-none min-w-[150px]"
-                bind:value={selectedCharId}
-            >
-                <option value="">All Characters</option>
-                {#each characters as char}
-                    <option value={char.id}>{char.name}</option>
-                {/each}
-            </select>
-
-            <!-- Chat Filter (Only visible if character is selected) -->
-            {#if selectedCharId}
-                <select
-                    class="bg-zinc-700 text-zinc-200 text-sm rounded px-2 py-1 outline-none focus:ring-2 focus:ring-blue-500 border-none min-w-[150px]"
-                    bind:value={selectedChatId}
+            <!-- Character Filter Dropdown -->
+            <div class="relative" data-dropdown="char">
+                <button
+                    class="flex items-center gap-2 bg-zinc-700 hover:bg-zinc-600 text-zinc-200 text-sm rounded px-3 py-1.5 outline-none transition-colors min-w-[150px] justify-between"
+                    on:click={() => showCharDropdown = !showCharDropdown}
                 >
-                    <option value="">All Chats</option>
-                    {#each chats as chat}
-                        <option value={chat.id}>{chat.name}</option>
-                    {/each}
-                </select>
+                    <div class="flex items-center gap-2 overflow-hidden">
+                        {#if selectedCharId}
+                            {@const selectedChar = characters.find(c => c.id === selectedCharId)}
+                            {#if selectedChar?.avatarUrl}
+                                <img src={selectedChar.avatarUrl} alt="" class="w-5 h-5 rounded-full object-cover flex-shrink-0" />
+                            {/if}
+                            <span class="truncate">{selectedChar?.name || 'Unknown Character'}</span>
+                        {:else}
+                            <span>All Characters</span>
+                        {/if}
+                    </div>
+                    <ChevronDown size={14} class="text-zinc-400 transition-transform {showCharDropdown ? 'rotate-180' : ''}" />
+                </button>
+                
+                {#if showCharDropdown}
+                    <div class="absolute top-full left-0 mt-1 w-64 max-h-80 overflow-y-auto bg-zinc-800 border border-zinc-700 rounded-lg shadow-xl z-30 flex flex-col py-1">
+                        <button
+                            class="flex items-center gap-2 px-3 py-2 text-sm text-zinc-300 hover:bg-zinc-700 hover:text-white text-left transition-colors"
+                            class:bg-blue-600={selectedCharId === ""}
+                            class:text-white={selectedCharId === ""}
+                            on:click={() => { selectedCharId = ""; showCharDropdown = false; }}
+                        >
+                            <span>All Characters</span>
+                        </button>
+                        {#each characters as char}
+                            <button
+                                class="flex items-center gap-2 px-3 py-2 text-sm text-zinc-300 hover:bg-zinc-700 hover:text-white text-left transition-colors"
+                                class:bg-blue-600={selectedCharId === char.id}
+                                class:text-white={selectedCharId === char.id}
+                                on:click={() => { selectedCharId = char.id; showCharDropdown = false; }}
+                            >
+                                {#if char.avatarUrl}
+                                    <img src={char.avatarUrl} alt="" class="w-6 h-6 rounded-full object-cover flex-shrink-0 bg-zinc-900" />
+                                {:else}
+                                    <div class="w-6 h-6 rounded-full bg-zinc-600 flex-shrink-0"></div>
+                                {/if}
+                                <span class="truncate">{char.name}</span>
+                            </button>
+                        {/each}
+                    </div>
+                {/if}
+            </div>
+
+            <!-- Chat Filter Dropdown (Only visible if character is selected) -->
+            {#if selectedCharId}
+                <div class="relative" data-dropdown="chat">
+                    <button
+                        class="flex items-center gap-2 bg-zinc-700 hover:bg-zinc-600 text-zinc-200 text-sm rounded px-3 py-1.5 outline-none transition-colors min-w-[150px] justify-between"
+                        on:click={() => showChatDropdown = !showChatDropdown}
+                    >
+                        <div class="flex items-center gap-2 overflow-hidden">
+                             <span class="truncate">
+                                {selectedChatId ? (chats.find(c => c.id === selectedChatId)?.name || 'Unknown Chat') : 'All Chats'}
+                             </span>
+                        </div>
+                        <ChevronDown size={14} class="text-zinc-400 transition-transform {showChatDropdown ? 'rotate-180' : ''}" />
+                    </button>
+
+                    {#if showChatDropdown}
+                         <div class="absolute top-full left-0 mt-1 w-64 max-h-80 overflow-y-auto bg-zinc-800 border border-zinc-700 rounded-lg shadow-xl z-30 flex flex-col py-1">
+                            <button
+                                class="flex items-center gap-2 px-3 py-2 text-sm text-zinc-300 hover:bg-zinc-700 hover:text-white text-left transition-colors"
+                                class:bg-blue-600={selectedChatId === ""}
+                                class:text-white={selectedChatId === ""}
+                                on:click={() => { selectedChatId = ""; showChatDropdown = false; }}
+                            >
+                                <span>All Chats</span>
+                            </button>
+                            {#each chats as chat}
+                                <button
+                                    class="flex items-center gap-2 px-3 py-2 text-sm text-zinc-300 hover:bg-zinc-700 hover:text-white text-left transition-colors"
+                                    class:bg-blue-600={selectedChatId === chat.id}
+                                    class:text-white={selectedChatId === chat.id}
+                                    on:click={() => { selectedChatId = chat.id; showChatDropdown = false; }}
+                                >
+                                    <span class="truncate">{chat.name}</span>
+                                </button>
+                            {/each}
+                        </div>
+                    {/if}
+                </div>
             {/if}
         </div>
     {/if}

@@ -15,7 +15,5 @@ const ui = new UI();
 
 RisuAPI.onUnload(() => {
     trackerManager.destroy();
-    timeTracker.destroy();
-    // chatTracker doesn't need explicit destroy as it just subscribes
     ui.destroy();
 })
