@@ -12,15 +12,12 @@ const timeDB = localForage.createInstance({
 export class TimeManager {
     private static cachedDB: Record<string, string> = {};
     private static readonly DEBOUNCE_WAIT = 1000;
-    private static initialized = false;
 
     private static debouncedSave = debounce(() => {
         RisuAPI.setArg(TIME_DB_ARG, JSON.stringify(TimeManager.cachedDB));
     }, TimeManager.DEBOUNCE_WAIT);
 
     static async init() {
-        if (this.initialized) return;
-
         try {
             // 1. Load from RisuAPI first
             const storedDB = RisuAPI.getArg(TIME_DB_ARG) as string;
@@ -32,13 +29,10 @@ export class TimeManager {
             if (Object.keys(this.cachedDB).length === 0) {
                 await this.migrateFromLocalForage();
             }
-
-            this.initialized = true;
         } catch (e) {
             Logger.error("Failed to init TimeManager:", e);
             // Fallback: try migration if parsing failed
             await this.migrateFromLocalForage();
-            this.initialized = true;
         }
     }
 
@@ -65,19 +59,15 @@ export class TimeManager {
     }
 
     static async getKeys(): Promise<string[]> {
-        if (!this.initialized) await this.init();
         return Object.keys(this.cachedDB);
     }
 
     static async getTime(key: string): Promise<Date> {
-        if (!this.initialized) await this.init();
         const timestamp = this.cachedDB[key];
         return timestamp ? new Date(timestamp) : new Date(0);
     }
 
     static async setTime(key: string, timestamp: Date): Promise<void> {
-        if (!this.initialized) await this.init();
-        
         const existingTime = this.cachedDB[key];
         // Only set if not exists (preserving creation time logic from original code)
         if (!existingTime) {
@@ -87,8 +77,6 @@ export class TimeManager {
     }
 
     static async bulkDelete(keys: string[]): Promise<void> {
-        if (!this.initialized) await this.init();
-        
         let changed = false;
         for (const key of keys) {
             if (this.cachedDB[key]) {

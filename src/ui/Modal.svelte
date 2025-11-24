@@ -167,6 +167,10 @@
                     // Reload settings
                     await checkLoginStatus();
                     loadSyncSettings();
+                    // Reload filters
+                    if (assetTab) {
+                        await assetTab.reloadFilters();
+                    }
                 } else {
                     await alert("복원에 실패했습니다. 백업이 없거나 손상되었습니다.");
                 }
@@ -197,6 +201,10 @@
                 // Reload settings
                 await checkLoginStatus();
                 loadSyncSettings();
+                // Reload filters
+                if (assetTab) {
+                    await assetTab.reloadFilters();
+                }
             } else {
                 await alert("복원에 실패했습니다. 파일이 손상되었거나 호환되지 않습니다.");
             }

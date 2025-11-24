@@ -362,6 +362,14 @@
         keyMetaMap = newMap;
         sortedKeys = sortedArray.map(([key, _]) => key);
     }
+
+    export async function reloadFilters() {
+        await loadCharacters();
+        if (selectedCharId) {
+            await loadChatsForCharacter(selectedCharId);
+        }
+        await loadMetadatas();
+    }
     
     onMount(async () => {
         window.addEventListener('click', handleWindowClick);

@@ -17,15 +17,12 @@ const chatDB = localForage.createInstance({
 export class ChatManager {
     private static cachedDB: Record<string, ChatData> = {};
     private static readonly DEBOUNCE_WAIT = 1000;
-    private static initialized = false;
 
     private static debouncedSave = debounce(() => {
         RisuAPI.setArg(CHAT_DB_ARG, JSON.stringify(ChatManager.cachedDB));
     }, ChatManager.DEBOUNCE_WAIT);
 
     static async init() {
-        if (this.initialized) return;
-
         try {
             const storedDB = RisuAPI.getArg(CHAT_DB_ARG) as string;
             if (storedDB) {
@@ -35,12 +32,9 @@ export class ChatManager {
             if (Object.keys(this.cachedDB).length === 0) {
                 await this.migrateFromLocalForage();
             }
-
-            this.initialized = true;
         } catch (e) {
             Logger.error("Failed to init ChatManager:", e);
             await this.migrateFromLocalForage();
-            this.initialized = true;
         }
     }
 
@@ -65,18 +59,14 @@ export class ChatManager {
     }
 
     static async getKeys(): Promise<string[]> {
-        if (!this.initialized) await this.init();
         return Object.keys(this.cachedDB);
     }
 
     static async getChatData(key: string): Promise<ChatData | null> {
-        if (!this.initialized) await this.init();
         return this.cachedDB[key] || null;
     }
 
     static async setChatData(key: string, data: ChatData): Promise<void> {
-        if (!this.initialized) await this.init();
-        
         const existingData = this.cachedDB[key];
         // If identical data exists, skip
         if (existingData && existingData.charId === data.charId && existingData.chatId === data.chatId) {
@@ -89,9 +79,7 @@ export class ChatManager {
         this.debouncedSave();
     }
 
-    static async deleteChatData(key: string): Promise<void> {
-        if (!this.initialized) await this.init();
-        
+    static async deleteChatData(key: string): Promise<void> {        
         if (this.cachedDB[key]) {
             delete this.cachedDB[key];
             this.debouncedSave();
@@ -99,8 +87,6 @@ export class ChatManager {
     }
 
     static async bulkDelete(keys: string[]): Promise<void> {
-        if (!this.initialized) await this.init();
-        
         let changed = false;
         for (const key of keys) {
             if (this.cachedDB[key]) {
@@ -115,8 +101,6 @@ export class ChatManager {
     }
 
     static async getCharacters(): Promise<Set<string>> {
-        if (!this.initialized) await this.init();
-        
         const chars = new Set<string>();
         Object.values(this.cachedDB).forEach(value => {
             if (value && value.charId) {
@@ -127,8 +111,6 @@ export class ChatManager {
     }
 
     static async getChats(charId: string): Promise<Set<string>> {
-        if (!this.initialized) await this.init();
-        
         const chats = new Set<string>();
         Object.values(this.cachedDB).forEach(value => {
             if (value && value.charId === charId && value.chatId) {
