@@ -15,6 +15,7 @@
     let userProfile: { name: string; picture: string; email: string } | null = null;
     let syncEnabled = false;
     let modalHeader: ModalHeader;
+    let assetTab: AssetTab | null = null;
     let fileInput: HTMLInputElement;
 
     onMount(async () => {
@@ -100,6 +101,11 @@
             
             if (report.errors.length > 0) {
                 Logger.error("Sync errors:", report.errors);
+            }
+            
+            // Refresh asset list
+            if (assetTab) {
+                await assetTab.loadMetadatas();
             }
             
             await alert(message);
@@ -245,7 +251,7 @@
 
         <!-- Body -->
         <div class="flex-1 overflow-y-auto bg-[#1e1e20] p-4">
-            <AssetTab />
+            <AssetTab bind:this={assetTab} />
         </div>
     </div>
 </div>

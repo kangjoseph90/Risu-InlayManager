@@ -334,7 +334,7 @@
         }
     }
 
-    async function loadMetadatas() {
+    export async function loadMetadatas() {
         const keys = await InlayManager.getKeys();
         const newMap = new Map<string, Date>();
         
