@@ -22,7 +22,9 @@ export class UpdateManager {
     static async check(): Promise<boolean> {
         try {
             Logger.log("Checking for updates...");
-            const response = await fetch(NPM_REGISTRY_URL);
+            const response = await fetch(NPM_REGISTRY_URL, {
+                cache: "no-store"
+            });
     
             if (!response || !response.ok) {
                 Logger.error("Failed to fetch latest version info from npm.");
@@ -63,7 +65,9 @@ export class UpdateManager {
 
     private static async updatePlugin(): Promise<boolean> {
         try {
-            const response = await fetch(UNPKG_URL);
+            const response = await fetch(UNPKG_URL, {
+                cache: "no-store"
+            });
     
             if (!response || !response.ok) {
                 Logger.error("Failed to download latest plugin script.");

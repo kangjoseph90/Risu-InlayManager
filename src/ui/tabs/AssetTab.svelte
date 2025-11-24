@@ -9,6 +9,8 @@
     import VirtualGrid from "../components/VirtualGrid.svelte";
     import { Image, Video, Music, Download, Check, X, Trash2, Filter, ChevronDown } from "lucide-svelte";
     import { DataManager } from "../../manager/data";
+    import { Logger } from "../../logger";
+    import { alert, confirm } from "../popup";
     
     // Selection mode state
     let selectionMode = false;
@@ -217,7 +219,7 @@
     async function deleteSelected() {
         if (selectedAssets.size === 0) return;
         
-        const confirmed = confirm(`${selectedAssets.size}개의 에셋을 삭제하시겠습니까?`);
+        const confirmed = await confirm(`${selectedAssets.size}개의 에셋을 삭제하시겠습니까?`);
         if (!confirmed) return;
         
         try {
@@ -229,7 +231,7 @@
             exitSelectionMode();
         } catch (error) {
             Logger.error('Failed to delete assets:', error);
-            alert('에셋 삭제에 실패했습니다.');
+            await alert('에셋 삭제에 실패했습니다.');
         }
     }
 
