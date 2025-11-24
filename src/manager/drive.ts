@@ -7,6 +7,7 @@ const INLAY_FOLDER_NAME = 'inlays';
 
 export class DriveManager {
     private static inlayFolderId: string | null = null;
+    private static fileIdCache: Map<string, string> | null = null;
 
     /**
      * Ensures the inlays folder exists in appDataFolder and returns its ID
@@ -68,17 +69,26 @@ export class DriveManager {
      * Lists all inlay IDs (file names without .json) in the drive folder
      */
     static async listInlayIds(): Promise<string[]> {
+        const mapping = await this.listInlayIdsWithFileIds();
+        return Array.from(mapping.keys());
+    }
+
+    /**
+     * Lists all inlay IDs with their corresponding Drive file IDs
+     * Returns a Map of inlay ID -> Drive file ID for efficient lookup
+     */
+    static async listInlayIdsWithFileIds(): Promise<Map<string, string>> {
         const folderId = await this.ensureInlayFolder();
         const token = await AuthManager.getAccessToken();
 
-        const ids: string[] = [];
+        const mapping = new Map<string, string>();
         let pageToken: string | null = null;
 
         do {
             const url: string = `https://www.googleapis.com/drive/v3/files?` +
                 `q='${folderId}' in parents and trashed=false` +
                 `&spaces=appDataFolder` +
-                `&fields=nextPageToken,files(name)` +
+                `&fields=nextPageToken,files(id,name)` +
                 `&pageSize=1000` +
                 (pageToken ? `&pageToken=${pageToken}` : '');
 
@@ -96,15 +106,39 @@ export class DriveManager {
                 for (const file of data.files) {
                     // Remove .json extension to get the UUID
                     const id = file.name.replace(/\.json$/, '');
-                    ids.push(id);
+                    mapping.set(id, file.id);
                 }
             }
 
             pageToken = data.nextPageToken || null;
         } while (pageToken);
 
-        Logger.log(`Found ${ids.length} inlays in drive`);
-        return ids;
+        Logger.log(`Found ${mapping.size} inlays in drive`);
+        return mapping;
+    }
+
+    /**
+     * Preload file ID cache for batch operations
+     */
+    static async preloadFileIdCache(): Promise<void> {
+        this.fileIdCache = await this.listInlayIdsWithFileIds();
+    }
+
+    /**
+     * Clear the file ID cache
+     */
+    static clearFileIdCache(): void {
+        this.fileIdCache = null;
+    }
+
+    /**
+     * Get file ID from cache or fetch it
+     */
+    private static async getCachedFileId(id: string, folderId: string): Promise<string | null> {
+        if (this.fileIdCache) {
+            return this.fileIdCache.get(id) || null;
+        }
+        return await this.getFileId(`${id}.json`, folderId);
     }
 
     /**
@@ -120,8 +154,8 @@ export class DriveManager {
 
         const fileName = `${id}.json`;
 
-        // Check if file already exists
-        const existingFileId = await this.getFileId(fileName, folderId);
+        // Check if file already exists using cache
+        const existingFileId = await this.getCachedFileId(id, folderId);
 
         if (existingFileId) {
             // Update existing file
@@ -179,6 +213,12 @@ export class DriveManager {
                 throw new Error(`Failed to upload inlay ${id}: ${await createRes.text()}`);
             }
 
+            const createData = await createRes.json();
+            // Update cache with new file ID
+            if (this.fileIdCache && createData.id) {
+                this.fileIdCache.set(id, createData.id);
+            }
+
             Logger.log(`Uploaded inlay ${id} to drive`);
         }
     }
@@ -191,7 +231,7 @@ export class DriveManager {
         const token = await AuthManager.getAccessToken();
 
         const fileName = `${id}.json`;
-        const fileId = await this.getFileId(fileName, folderId);
+        const fileId = await this.getCachedFileId(id, folderId);
 
         if (!fileId) {
             Logger.warn(`Inlay ${id} not found in drive`);
@@ -222,7 +262,7 @@ export class DriveManager {
         const token = await AuthManager.getAccessToken();
 
         const fileName = `${id}.json`;
-        const fileId = await this.getFileId(fileName, folderId);
+        const fileId = await this.getCachedFileId(id, folderId);
 
         if (!fileId) {
             Logger.warn(`Inlay ${id} not found in drive, nothing to delete`);
@@ -239,6 +279,11 @@ export class DriveManager {
 
         if (!deleteRes.ok) {
             throw new Error(`Failed to delete inlay ${id}: ${await deleteRes.text()}`);
+        }
+
+        // Remove from cache
+        if (this.fileIdCache) {
+            this.fileIdCache.delete(id);
         }
 
         Logger.log(`Deleted inlay ${id} from drive`);
@@ -268,9 +313,10 @@ export class DriveManager {
     }
 
     /**
-     * Clears the cached folder ID (useful for testing)
+     * Clears the cached folder ID and file ID cache (useful for testing)
      */
     static clearCache(): void {
         this.inlayFolderId = null;
+        this.fileIdCache = null;
     }
 }

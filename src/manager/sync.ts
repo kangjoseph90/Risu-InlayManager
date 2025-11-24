@@ -23,6 +23,8 @@ export interface SyncOptions {
     deleteLocal?: boolean;
     /** Delete drive inlays that don't exist locally */
     deleteDrive?: boolean;
+    /** Maximum concurrent operations (default: 5) */
+    concurrency?: number;
 }
 
 export interface SyncProgress {
@@ -48,6 +50,34 @@ export class SyncManager {
         bytesTransferred: 0,
         totalBytes: 0
     };
+
+    /**
+     * Process items in parallel with concurrency control
+     */
+    private static async processInParallel<T, R>(
+        items: T[],
+        processor: (item: T, index: number) => Promise<R>,
+        concurrency: number = 5
+    ): Promise<R[]> {
+        const results: R[] = new Array(items.length);
+        let currentIndex = 0;
+        
+        const worker = async (): Promise<void> => {
+            while (currentIndex < items.length) {
+                this.checkCancellation();
+                const index = currentIndex++;
+                const item = items[index];
+                results[index] = await processor(item, index);
+            }
+        };
+        
+        const workers = Array(Math.min(concurrency, items.length))
+            .fill(null)
+            .map(() => worker());
+        
+        await Promise.all(workers);
+        return results;
+    }
 
     /**
      * Set progress callback
@@ -194,7 +224,8 @@ export class SyncManager {
         upload: true,
         download: true,
         deleteLocal: false,
-        deleteDrive: false
+        deleteDrive: false,
+        concurrency: 5
     }): Promise<SyncReport> {
         if (this.isSyncing) {
             throw new Error('Sync already in progress');
@@ -219,6 +250,10 @@ export class SyncManager {
             // Sync deleted inlays tombstone list
             await this.syncDeletedInlays();
             const deletedSet = this.getDeletedInlays();
+
+            // Preload file ID cache for efficient batch operations
+            Logger.log('Preloading Drive file ID cache...');
+            await DriveManager.preloadFileIdCache();
 
             // Get local and drive inlay IDs
             const localIds = await InlayManager.getKeys();
@@ -281,47 +316,51 @@ export class SyncManager {
             // Upload local inlays that don't exist in drive
             if (options.upload && toUpload.length > 0) {
                 this.updateProgress({ phase: 'uploading', total: totalOps, current: 0 });
-                Logger.log(`Uploading ${toUpload.length} inlays...`);
+                Logger.log(`Uploading ${toUpload.length} inlays with concurrency ${options.concurrency || 5}...`);
 
-                for (let i = 0; i < toUpload.length; i++) {
-                    this.checkCancellation();
-                    const id = toUpload[i];
-                    
-                    try {
-                        const data = await InlayManager.getInlayData(id);
-                        if (data) {
-                            this.updateProgress({ current: i + 1, currentFileName: data.name || id });
-                            await DriveManager.uploadInlay(id, data);
-                            report.uploaded++;
+                const concurrency = options.concurrency || 5;
+                await this.processInParallel(
+                    toUpload,
+                    async (id, index) => {
+                        try {
+                            const data = await InlayManager.getInlayData(id);
+                            if (data) {
+                                this.updateProgress({ current: index + 1, currentFileName: data.name || id });
+                                await DriveManager.uploadInlay(id, data);
+                                report.uploaded++;
+                            }
+                        } catch (e) {
+                            Logger.error(`Failed to upload inlay ${id}:`, e);
+                            report.errors.push({ id, error: String(e) });
                         }
-                    } catch (e) {
-                        Logger.error(`Failed to upload inlay ${id}:`, e);
-                        report.errors.push({ id, error: String(e) });
-                    }
-                }
+                    },
+                    concurrency
+                );
             }
 
             // Download drive inlays that don't exist locally
             if (options.download && toDownload.length > 0) {
                 this.updateProgress({ phase: 'downloading', current: 0, total: toDownload.length });
-                Logger.log(`Downloading ${toDownload.length} inlays...`);
+                Logger.log(`Downloading ${toDownload.length} inlays with concurrency ${options.concurrency || 5}...`);
 
-                for (let i = 0; i < toDownload.length; i++) {
-                    this.checkCancellation();
-                    const id = toDownload[i];
-                    
-                    try {
-                        this.updateProgress({ current: i + 1, currentFileName: id });
-                        const data = await DriveManager.downloadInlay(id);
-                        if (data) {
-                            await InlayManager.setInlayData(id, data);
-                            report.downloaded++;
+                const concurrency = options.concurrency || 5;
+                await this.processInParallel(
+                    toDownload,
+                    async (id, index) => {
+                        try {
+                            this.updateProgress({ current: index + 1, currentFileName: id });
+                            const data = await DriveManager.downloadInlay(id);
+                            if (data) {
+                                await InlayManager.setInlayData(id, data);
+                                report.downloaded++;
+                            }
+                        } catch (e) {
+                            Logger.error(`Failed to download inlay ${id}:`, e);
+                            report.errors.push({ id, error: String(e) });
                         }
-                    } catch (e) {
-                        Logger.error(`Failed to download inlay ${id}:`, e);
-                        report.errors.push({ id, error: String(e) });
-                    }
-                }
+                    },
+                    concurrency
+                );
             }
 
             // Delete local inlays that don't exist in drive
@@ -361,42 +400,47 @@ export class SyncManager {
             return report;
         } finally {
             this.isSyncing = false;
+            // Clear cache after sync to free memory
+            DriveManager.clearFileIdCache();
         }
     }
 
     /**
      * Push all local inlays to drive (backup)
      */
-    static async pushToCloud(): Promise<SyncReport> {
+    static async pushToCloud(concurrency: number = 5): Promise<SyncReport> {
         return await this.sync({
             upload: true,
             download: false,
             deleteLocal: false,
-            deleteDrive: false
+            deleteDrive: false,
+            concurrency
         });
     }
 
     /**
      * Pull all drive inlays to local (restore)
      */
-    static async pullFromCloud(): Promise<SyncReport> {
+    static async pullFromCloud(concurrency: number = 5): Promise<SyncReport> {
         return await this.sync({
             upload: false,
             download: true,
             deleteLocal: false,
-            deleteDrive: false
+            deleteDrive: false,
+            concurrency
         });
     }
 
     /**
      * Full bidirectional sync (merge)
      */
-    static async mergeSync(): Promise<SyncReport> {
+    static async mergeSync(concurrency: number = 5): Promise<SyncReport> {
         return await this.sync({
             upload: true,
             download: true,
             deleteLocal: false,
-            deleteDrive: false
+            deleteDrive: false,
+            concurrency
         });
     }
 
