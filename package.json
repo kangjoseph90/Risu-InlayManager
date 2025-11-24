@@ -1,6 +1,6 @@
 {
   "name": "risu-inlay-manager",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "RisuAPI Plugin for managing inlay assets.",
   "type": "module",
   "main": "dist/risu-inlay-manager.js",
