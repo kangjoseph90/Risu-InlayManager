@@ -53,6 +53,8 @@ export class SyncManager {
 
     /**
      * Process items in parallel with concurrency control
+     * Note: JavaScript is single-threaded, so no actual race conditions exist.
+     * The async operations are cooperative and currentIndex++ is atomic.
      */
     private static async processInParallel<T, R>(
         items: T[],
@@ -65,6 +67,7 @@ export class SyncManager {
         const worker = async (): Promise<void> => {
             while (currentIndex < items.length) {
                 this.checkCancellation();
+                // JavaScript is single-threaded - this increment is atomic
                 const index = currentIndex++;
                 const item = items[index];
                 results[index] = await processor(item, index);
@@ -335,15 +338,17 @@ export class SyncManager {
                 Logger.log(`Uploading ${toUpload.length} inlays with concurrency ${options.concurrency || 5}...`);
 
                 const concurrency = options.concurrency || 5;
+                let uploadCompleted = 0;
                 await this.processInParallel(
                     toUpload,
                     async (id, index) => {
                         try {
                             const data = await InlayManager.getInlayData(id);
                             if (data) {
-                                this.updateProgress({ current: index + 1, currentFileName: data.name || id });
                                 await DriveManager.uploadInlay(id, data);
                                 report.uploaded++;
+                                uploadCompleted++;
+                                this.updateProgress({ current: uploadCompleted, currentFileName: data.name || id });
                             }
                         } catch (e) {
                             Logger.error(`Failed to upload inlay ${id}:`, e);
@@ -360,15 +365,17 @@ export class SyncManager {
                 Logger.log(`Downloading ${toDownload.length} inlays with concurrency ${options.concurrency || 5}...`);
 
                 const concurrency = options.concurrency || 5;
+                let downloadCompleted = 0;
                 await this.processInParallel(
                     toDownload,
                     async (id, index) => {
                         try {
-                            this.updateProgress({ current: index + 1, currentFileName: id });
                             const data = await DriveManager.downloadInlay(id);
                             if (data) {
                                 await InlayManager.setInlayData(id, data);
                                 report.downloaded++;
+                                downloadCompleted++;
+                                this.updateProgress({ current: downloadCompleted, currentFileName: id });
                             }
                         } catch (e) {
                             Logger.error(`Failed to download inlay ${id}:`, e);

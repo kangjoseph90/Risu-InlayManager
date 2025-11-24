@@ -215,6 +215,7 @@ export class DriveManager {
 
             const createData = await createRes.json();
             // Update cache with new file ID
+            // Note: JavaScript is single-threaded, Map operations are atomic
             if (this.fileIdCache && createData.id) {
                 this.fileIdCache.set(id, createData.id);
             }
@@ -282,6 +283,7 @@ export class DriveManager {
         }
 
         // Remove from cache
+        // Note: JavaScript is single-threaded, Map operations are atomic
         if (this.fileIdCache) {
             this.fileIdCache.delete(id);
         }
