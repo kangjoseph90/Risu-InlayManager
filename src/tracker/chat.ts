@@ -30,4 +30,8 @@ export class ChatTracker {
             Logger.warn('Error tracking chat info:', error);
         }
     }
+
+    destroy() {
+        TrackerManager.getInstance().unsubscribe(this.handleKey);
+    }
 }

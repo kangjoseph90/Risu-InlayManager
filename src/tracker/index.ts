@@ -5,7 +5,7 @@ type TrackerCallback = (key: string) => Promise<void>;
 
 export class TrackerManager {
     private static instance: TrackerManager;
-    private subscribers: TrackerCallback[] = [];
+    private subscribers: Set<TrackerCallback> = new Set();
 
     private inlayObserver: EditFunction = async (content: string) => {
         try {
@@ -14,7 +14,7 @@ export class TrackerManager {
             while ((match = regex.exec(content)) !== null) {
                 const parsed = match[2];
                 // Notify all subscribers
-                await Promise.all(this.subscribers.map(cb => cb(parsed)));
+                await Promise.all(Array.from(this.subscribers).map(cb => cb(parsed)));
             }
         } catch (error) {
             Logger.warn('Error processing inlay tag:', error);
@@ -34,11 +34,15 @@ export class TrackerManager {
     }
 
     subscribe(callback: TrackerCallback) {
-        this.subscribers.push(callback);
+        this.subscribers.add(callback);
     }
 
+    unsubscribe(callback: TrackerCallback) {
+        this.subscribers.delete(callback);
+    }
+    
     destroy() {
         RisuAPI.removeRisuScriptHandler(ScriptMode.EditDisplay, this.inlayObserver);
-        this.subscribers = [];
+        this.subscribers.clear();
     }
 }

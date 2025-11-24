@@ -14,4 +14,8 @@ export class TimeTracker {
             Logger.warn('Error setting timestamp:', error);
         }
     }
+
+    destroy() {
+        TrackerManager.getInstance().unsubscribe(this.handleKey);
+    }
 }

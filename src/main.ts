@@ -19,6 +19,8 @@ const ui = new UI();
 
 RisuAPI.onUnload(() => {
     trackerManager.destroy();
+    timeTracker.destroy();
+    chatTracker.destroy();
     ui.destroy();
 });
 
