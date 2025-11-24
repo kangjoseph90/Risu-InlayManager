@@ -3,9 +3,11 @@
     import { InlayType, type InlayData } from "../../types";
     import { TimeManager } from "../../manager/time";
     import { InlayManager } from "../../manager/inlay";
+    import { ChatManager } from "../../manager/chat";
+    import { RisuAPI } from "../../api";
     import { AssetViewer, AssetPopup } from "../components";
     import VirtualGrid from "../components/VirtualGrid.svelte";
-    import { Image, Video, Music, Download, Check, X, Trash2 } from "lucide-svelte";
+    import { Image, Video, Music, Download, Check, X, Trash2, Filter } from "lucide-svelte";
     import { DataManager } from "../../manager/data";
     
     // Selection mode state
@@ -27,6 +29,24 @@
     let visibleIndices = new Set<number>();
     let visibleKeys = new Set<string>();
     
+    // Filter state
+    interface CharacterInfo {
+        id: string;
+        name: string;
+        avatarUrl?: string;
+    }
+
+    interface ChatInfo {
+        id: string;
+        name: string;
+    }
+
+    let characters: CharacterInfo[] = [];
+    let chats: ChatInfo[] = [];
+
+    let selectedCharId: string = "";
+    let selectedChatId: string = "";
+
     // Touch scroll detection
     let touchStartY = 0;
     let touchStartX = 0;
@@ -43,6 +63,17 @@
         }
     }
     
+    // Watch filter changes
+    $: if (selectedCharId !== undefined) {
+        selectedChatId = ""; // Reset chat filter when character changes
+        loadChatsForCharacter(selectedCharId);
+        loadMetadatas();
+    }
+
+    $: if (selectedChatId !== undefined) {
+        loadMetadatas();
+    }
+
     // Functions for selection mode
     function startLongPress(key: string) {
         longPressKey = key;
@@ -188,11 +219,93 @@
         }
     }
 
+    async function loadCharacters() {
+        try {
+            const charIds = await ChatManager.getCharacters();
+            const loadedChars: CharacterInfo[] = [];
+
+            for (const id of charIds) {
+                try {
+                    const charData = RisuAPI.findCharacterbyId(id);
+                    if (charData) {
+                         const avatarUrl = await RisuAPI.getCharImage(charData.image, 'plain');
+                         loadedChars.push({
+                             id,
+                             name: charData.name,
+                             avatarUrl
+                         });
+                    } else {
+                        // If character not found in current session list, might just show ID or "Unknown"
+                         loadedChars.push({
+                             id,
+                             name: "Unknown Character"
+                         });
+                    }
+                } catch (e) {
+                     loadedChars.push({
+                             id,
+                             name: "Unknown Character"
+                     });
+                }
+            }
+            characters = loadedChars;
+        } catch (e) {
+            console.error("Failed to load characters", e);
+        }
+    }
+
+    async function loadChatsForCharacter(charId: string) {
+        if (!charId) {
+            chats = [];
+            return;
+        }
+        try {
+            const chatIds = await ChatManager.getChats(charId);
+            const loadedChats: ChatInfo[] = [];
+
+            // We need to find the character object to access its chats array
+            const charData = RisuAPI.findCharacterbyId(charId);
+
+            for (const chatId of chatIds) {
+                let chatName = "Unknown Chat";
+                if (charData && charData.chats) {
+                    const chat = charData.chats.find((c: any) => c.id === chatId);
+                    if (chat) {
+                        chatName = chat.name || "Untitled Chat"; // Assuming chat has a name property, or use some default
+                        // If chat.name is undefined (e.g. newly created), use default
+                        // In risu, usually it's `chat.name` or derived from content.
+                        // The user prompt said: "const chatName = chat?.name"
+                    }
+                }
+                loadedChats.push({
+                    id: chatId,
+                    name: chatName
+                });
+            }
+            chats = loadedChats;
+        } catch (e) {
+             console.error("Failed to load chats", e);
+        }
+    }
+
     async function loadMetadatas() {
         const keys = await InlayManager.getKeys();
         const newMap = new Map<string, Date>();
         
         await Promise.all(keys.map(async (key) => {
+             // Apply filtering
+            if (selectedCharId) {
+                const chatData = await ChatManager.getChatData(key);
+                if (!chatData || chatData.charId !== selectedCharId) {
+                    return;
+                }
+                if (selectedChatId) {
+                    if (chatData.chatId !== selectedChatId) {
+                        return;
+                    }
+                }
+            }
+
             const time = await TimeManager.getTime(key);
             newMap.set(key, time);
         }));
@@ -205,6 +318,7 @@
     }
     
     onMount(async () => {
+        await loadCharacters();
         await loadMetadatas();
     });
     
@@ -213,107 +327,152 @@
     });
 </script>
 
-<!-- Selection Mode Toolbar -->
-{#if selectionMode}
-    <div class="sticky top-0 z-50 bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg">
-        <div class="flex items-center justify-between px-4 py-2">
-            <div class="flex items-center gap-3">
-                <button 
-                    on:click={exitSelectionMode}
-                    class="p-2 hover:bg-white/10 rounded-lg transition-colors"
-                    aria-label="Exit selection mode"
-                >
-                    <X class="w-5 h-5" />
-                </button>
-                <span class="font-semibold text-lg">
-                    {selectedAssets.size}개 선택됨
-                </span>
-            </div>
+<div class="flex flex-col h-full">
+    <!-- Filter Toolbar -->
+    {#if !selectionMode}
+        <div class="flex items-center gap-2 p-2 bg-zinc-800/50 rounded-lg mb-2 flex-wrap">
             <div class="flex items-center gap-2">
-                <button 
-                    on:click={deleteSelected}
-                    disabled={selectedAssets.size === 0}
-                    class="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg 
-                           hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed
-                           font-medium shadow-md"
-                >
-                    <Trash2 class="w-5 h-5" />
-                    삭제
-                </button>
-                <button 
-                    on:click={downloadSelected}
-                    disabled={selectedAssets.size === 0}
-                    class="flex items-center gap-2 px-4 py-2 bg-white text-blue-600 rounded-lg 
-                           hover:bg-blue-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed
-                           font-medium shadow-md"
-                >
-                    <Download class="w-5 h-5" />
-                    다운로드
-                </button>
+                <Filter size={18} class="text-zinc-400" />
+                <span class="text-sm font-medium text-zinc-300">Filters:</span>
             </div>
-        </div>
-    </div>
-{/if}
 
-{#if sortedKeys.length === 0}
-    <div class="flex flex-col items-center justify-center min-h-[400px] text-zinc-400 p-4">
-        <div class="p-6 rounded-full bg-zinc-800/50 mb-4">
-            <Image class="w-16 h-16" />
-        </div>
-        <p class="text-xl font-semibold text-zinc-300">인레이 에셋이 없습니다</p>
-    </div>
-{:else}
-    <VirtualGrid 
-        bind:this={virtualGrid}
-        bind:visibleIndices={visibleIndices}
-        items={sortedKeys} 
-        itemHeight={200} 
-        let:item 
-    >
-        {@const key = item}
-        <div
-            data-asset-item
-            data-key={key}
-            class="group relative aspect-square bg-zinc-900 rounded-xl overflow-hidden
-                   transition-all duration-200 cursor-pointer touch-manipulation
-                   {selectionMode ? 'md:hover:scale-95' : 'md:hover:scale-105 md:hover:shadow-2xl md:hover:shadow-blue-500/20'}
-                   {selectedAssets.has(key) ? 'ring-4 ring-blue-500 scale-95' : 'md:hover:ring-2 md:hover:ring-blue-400/50'}"
-            on:mousedown={() => startLongPress(key)}
-            on:mouseup={() => handleMouseUp(key)}
-            on:mouseleave={cancelLongPress}
-            on:touchstart={(e) => handleTouchStart(key, e)}
-            on:touchmove={handleTouchMove}
-            on:touchend={handleTouchEnd}
-            on:touchcancel={handleTouchEnd}
-            on:click={() => handleAssetClick(key)}
-            role="button"
-            tabindex="0"
-            on:keydown={(e) => handleKeyDown(key, e)}
-        >
-            <!-- Asset Viewer with Lazy Loading -->
-            <AssetViewer
-                {key}
-                width="w-full"
-                height="h-full"
-                showControls={false}
-                isVisible={visibleKeys.has(key)}
-            />
+            <!-- Character Filter -->
+            <select
+                class="bg-zinc-700 text-zinc-200 text-sm rounded px-2 py-1 outline-none focus:ring-2 focus:ring-blue-500 border-none min-w-[150px]"
+                bind:value={selectedCharId}
+            >
+                <option value="">All Characters</option>
+                {#each characters as char}
+                    <option value={char.id}>{char.name}</option>
+                {/each}
+            </select>
 
-            <!-- Selection Checkmark -->
-            {#if selectionMode}
-                <div class="absolute top-2 right-2 z-10">
-                    {#if selectedAssets.has(key)}
-                        <div class="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center shadow-lg">
-                            <Check class="w-6 h-6 text-white" />
-                        </div>
-                    {:else}
-                        <div class="w-8 h-8 rounded-full border-2 border-white bg-black/30 backdrop-blur-sm" />
-                    {/if}
-                </div>
+            <!-- Chat Filter (Only visible if character is selected) -->
+            {#if selectedCharId}
+                <select
+                    class="bg-zinc-700 text-zinc-200 text-sm rounded px-2 py-1 outline-none focus:ring-2 focus:ring-blue-500 border-none min-w-[150px]"
+                    bind:value={selectedChatId}
+                >
+                    <option value="">All Chats</option>
+                    {#each chats as chat}
+                        <option value={chat.id}>{chat.name}</option>
+                    {/each}
+                </select>
             {/if}
         </div>
-    </VirtualGrid>
-{/if}
+    {/if}
+
+    <!-- Selection Mode Toolbar -->
+    {#if selectionMode}
+        <div class="sticky top-0 z-50 bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg mb-2 rounded-lg">
+            <div class="flex items-center justify-between px-4 py-2">
+                <div class="flex items-center gap-3">
+                    <button
+                        on:click={exitSelectionMode}
+                        class="p-2 hover:bg-white/10 rounded-lg transition-colors"
+                        aria-label="Exit selection mode"
+                    >
+                        <X class="w-5 h-5" />
+                    </button>
+                    <span class="font-semibold text-lg">
+                        {selectedAssets.size}개 선택됨
+                    </span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button
+                        on:click={deleteSelected}
+                        disabled={selectedAssets.size === 0}
+                        class="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg
+                               hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed
+                               font-medium shadow-md"
+                    >
+                        <Trash2 class="w-5 h-5" />
+                        삭제
+                    </button>
+                    <button
+                        on:click={downloadSelected}
+                        disabled={selectedAssets.size === 0}
+                        class="flex items-center gap-2 px-4 py-2 bg-white text-blue-600 rounded-lg
+                               hover:bg-blue-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed
+                               font-medium shadow-md"
+                    >
+                        <Download class="w-5 h-5" />
+                        다운로드
+                    </button>
+                </div>
+            </div>
+        </div>
+    {/if}
+
+    <!-- Content Area -->
+    <div class="flex-1 min-h-0">
+        {#if sortedKeys.length === 0}
+            <div class="flex flex-col items-center justify-center h-full text-zinc-400 p-4">
+                <div class="p-6 rounded-full bg-zinc-800/50 mb-4">
+                    <Image class="w-16 h-16" />
+                </div>
+                <p class="text-xl font-semibold text-zinc-300">
+                    {#if selectedCharId || selectedChatId}
+                        조건에 맞는 에셋이 없습니다
+                    {:else}
+                        인레이 에셋이 없습니다
+                    {/if}
+                </p>
+            </div>
+        {:else}
+            <VirtualGrid
+                bind:this={virtualGrid}
+                bind:visibleIndices={visibleIndices}
+                items={sortedKeys}
+                itemHeight={200}
+                let:item
+            >
+                {@const key = item}
+                <div
+                    data-asset-item
+                    data-key={key}
+                    class="group relative aspect-square bg-zinc-900 rounded-xl overflow-hidden
+                        transition-all duration-200 cursor-pointer touch-manipulation
+                        {selectionMode ? 'md:hover:scale-95' : 'md:hover:scale-105 md:hover:shadow-2xl md:hover:shadow-blue-500/20'}
+                        {selectedAssets.has(key) ? 'ring-4 ring-blue-500 scale-95' : 'md:hover:ring-2 md:hover:ring-blue-400/50'}"
+                    on:mousedown={() => startLongPress(key)}
+                    on:mouseup={() => handleMouseUp(key)}
+                    on:mouseleave={cancelLongPress}
+                    on:touchstart={(e) => handleTouchStart(key, e)}
+                    on:touchmove={handleTouchMove}
+                    on:touchend={handleTouchEnd}
+                    on:touchcancel={handleTouchEnd}
+                    on:click={() => handleAssetClick(key)}
+                    role="button"
+                    tabindex="0"
+                    on:keydown={(e) => handleKeyDown(key, e)}
+                >
+                    <!-- Asset Viewer with Lazy Loading -->
+                    <AssetViewer
+                        {key}
+                        width="w-full"
+                        height="h-full"
+                        showControls={false}
+                        isVisible={visibleKeys.has(key)}
+                    />
+
+                    <!-- Selection Checkmark -->
+                    {#if selectionMode}
+                        <div class="absolute top-2 right-2 z-10">
+                            {#if selectedAssets.has(key)}
+                                <div class="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center shadow-lg">
+                                    <Check class="w-6 h-6 text-white" />
+                                </div>
+                            {:else}
+                                <div class="w-8 h-8 rounded-full border-2 border-white bg-black/30 backdrop-blur-sm" />
+                            {/if}
+                        </div>
+                    {/if}
+                </div>
+            </VirtualGrid>
+        {/if}
+    </div>
+</div>
 
 <!-- Asset Popup -->
 {#if showPopup && popupKey}

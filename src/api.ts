@@ -92,6 +92,10 @@ const rawAPI = {
     removeRisuReplacer,
     //@ts-ignore
     onUnload,
+    //@ts-ignore
+    findCharacterbyId,
+    //@ts-ignore
+    getCharImage
 }
 
 function getFullName(name: string) {
@@ -164,5 +168,10 @@ export class RisuAPI {
     static onUnload(callback: () => void) {
         rawAPI.onUnload(callback);
     }
+    static findCharacterbyId(id: string): any {
+        return rawAPI.findCharacterbyId(id);
+    }
+    static async getCharImage(image: string, type: string): Promise<string> {
+        return await rawAPI.getCharImage(image, type);
+    }
 }
-
