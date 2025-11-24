@@ -372,18 +372,18 @@
     }
     
     onMount(async () => {
-        window.addEventListener('click', handleWindowClick);
         await loadCharacters();
         await loadMetadatas();
     });
     
     onDestroy(() => {
-        window.removeEventListener('click', handleWindowClick);
         cancelLongPress();
     });
 </script>
 
-<div class="flex flex-col h-full">
+<!-- svelte-ignore a11y-click-events-have-key-events -->
+<!-- svelte-ignore a11y-no-static-element-interactions -->
+<div class="flex flex-col h-full" on:click={handleWindowClick}>
     <!-- Filter Toolbar -->
     {#if !selectionMode}
         <div class="flex items-center gap-2 py-2 px-4 bg-zinc-800/50 rounded-lg mb-2 flex-wrap z-20 relative">
@@ -396,7 +396,7 @@
             <div class="relative" data-dropdown="char">
                 <button
                     class="flex items-center gap-2 bg-zinc-700 hover:bg-zinc-600 text-zinc-200 text-sm rounded px-3 py-1.5 outline-none transition-colors min-w-[150px] justify-between"
-                    on:click={() => showCharDropdown = !showCharDropdown}
+                    on:click|stopPropagation={() => showCharDropdown = !showCharDropdown}
                 >
                     <div class="flex items-center gap-2 overflow-hidden">
                         {#if selectedCharId}
@@ -446,7 +446,7 @@
                 <div class="relative" data-dropdown="chat">
                     <button
                         class="flex items-center gap-2 bg-zinc-700 hover:bg-zinc-600 text-zinc-200 text-sm rounded px-3 py-1.5 outline-none transition-colors min-w-[150px] justify-between"
-                        on:click={() => showChatDropdown = !showChatDropdown}
+                        on:click|stopPropagation={() => showChatDropdown = !showChatDropdown}
                     >
                         <div class="flex items-center gap-2 overflow-hidden">
                              <span class="truncate">
