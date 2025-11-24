@@ -7,7 +7,7 @@
     import { Logger } from "../logger";
     import { alert, confirm } from "./popup";
     import { AssetTab } from "./tabs";
-    import { ModalHeader } from "./components";
+    import { ModalHeader, SyncProgressBar } from "./components";
 
     export let onClose: () => void;
 
@@ -109,9 +109,20 @@
             // Show user-friendly message for manual sync
             if (e instanceof Error && e.message === 'Sync already in progress') {
                 await alert('동기화가 이미 진행 중입니다. 잠시 후 다시 시도해주세요.');
+            } else if (e instanceof Error && e.message === 'Sync cancelled') {
+                await alert('동기화가 취소되었습니다.');
             } else {
                 await alert(`동기화 실패: ${e}`);
             }
+        }
+    }
+
+    async function handleCancelSync() {
+        try {
+            SyncManager.cancelSync();
+            Logger.log("Sync cancellation requested");
+        } catch (e) {
+            Logger.error("Cancel sync failed:", e);
         }
     }
 
@@ -228,6 +239,9 @@
             on:backup={handleBackup}
             on:restore={handleRestore}
         />
+
+        <!-- Sync Progress Bar -->
+        <SyncProgressBar on:cancel={handleCancelSync} />
 
         <!-- Body -->
         <div class="flex-1 overflow-y-auto bg-[#1e1e20] p-4">

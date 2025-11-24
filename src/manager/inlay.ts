@@ -17,10 +17,18 @@ export class InlayManager {
 
     static async setInlayData(key: string, data: InlayData): Promise<void> {
         await db.setItem(key, data);
+        // Remove from deleted tombstone if it was previously deleted
+        // Import SyncManager dynamically to avoid circular dependency
+        const { SyncManager } = await import('./sync');
+        SyncManager.removeDeletedInlay(key);
     }
 
     static async deleteInlay(key: string): Promise<void> {
         await db.removeItem(key);
+        // Add to deleted tombstone for cross-device deletion
+        // Import SyncManager dynamically to avoid circular dependency
+        const { SyncManager } = await import('./sync');
+        SyncManager.addDeletedInlay(key);
     }
 
     static async getAllInlays(): Promise<Map<string, InlayData>> {

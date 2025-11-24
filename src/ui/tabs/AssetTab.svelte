@@ -4,6 +4,7 @@
     import { TimeManager } from "../../manager/time";
     import { InlayManager } from "../../manager/inlay";
     import { ChatManager } from "../../manager/chat";
+    import { AuthManager, SyncManager } from "../../manager";
     import { RisuAPI } from "../../api";
     import { AssetViewer, AssetPopup } from "../components";
     import VirtualGrid from "../components/VirtualGrid.svelte";
@@ -219,12 +220,41 @@
     async function deleteSelected() {
         if (selectedAssets.size === 0) return;
         
-        const confirmed = await confirm(`${selectedAssets.size}개의 에셋을 삭제하시겠습니까?`);
-        if (!confirmed) return;
+        const isLoggedIn = AuthManager.isLoggedIn();
+        let permanentDelete = false;
+        
+        if (isLoggedIn) {
+            // Show options when logged in
+            const message = `${selectedAssets.size}개의 에셋을 삭제하시겠습니까?\n\n[확인] - 모든 기기에서 영구 삭제\n[취소] - 이 기기에서만 삭제`;
+            permanentDelete = await confirm(message);
+            
+            // If user clicked cancel on the first dialog, ask for local-only delete
+            if (!permanentDelete) {
+                const localOnly = await confirm(`이 기기에서만 ${selectedAssets.size}개의 에셋을 삭제하시겠습니까?`);
+                if (!localOnly) return; // User cancelled both
+            }
+        } else {
+            // Not logged in, just confirm regular delete
+            const confirmed = await confirm(`${selectedAssets.size}개의 에셋을 삭제하시겠습니까?`);
+            if (!confirmed) return;
+        }
         
         try {
             for (const key of selectedAssets) {
-                await InlayManager.deleteInlay(key);
+                if (permanentDelete) {
+                    // Delete with tombstone (will sync across devices)
+                    await InlayManager.deleteInlay(key);
+                } else {
+                    // Local-only delete: remove tombstone if exists, then delete locally
+                    SyncManager.removeDeletedInlay(key);
+                    // Use localForage directly to avoid adding tombstone
+                    const { default: localForage } = await import('localforage');
+                    const db = localForage.createInstance({
+                        name: 'inlay',
+                        storeName: 'inlay',
+                    });
+                    await db.removeItem(key);
+                }
             }
             
             await loadMetadatas();

@@ -9,7 +9,7 @@ export function initManagers() {
 // Export sync-related classes for external use
 export { AuthManager } from "./auth";
 export { DriveManager } from "./drive";
-export { SyncManager, type SyncReport, type SyncOptions } from "./sync";
+export { SyncManager, type SyncReport, type SyncOptions, type SyncProgress } from "./sync";
 export { InlayManager } from "./inlay";
 export { BackupManager } from "./backup";
 export { AutoSyncManager } from "./autoSync";

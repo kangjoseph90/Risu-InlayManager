@@ -10,6 +10,7 @@ export {
     ACCESS_TOKEN_EXPIRES,
     REFRESH_TOKEN,
     SYNC_ENABLED,
+    DELETED_INLAYS,
     RisuArgType
 };
 
@@ -35,6 +36,7 @@ const ACCESS_TOKEN = 'access_token'
 const ACCESS_TOKEN_EXPIRES = 'access_token_expires'
 const REFRESH_TOKEN = 'refresh_token'
 const SYNC_ENABLED = 'sync_enabled'
+const DELETED_INLAYS = 'deleted_inlays'
 // Plugin Arguments Definition
 const RISU_ARGS: RisuArgs = {
     [TIME_DB_ARG]: RisuArgType.String,
@@ -44,6 +46,7 @@ const RISU_ARGS: RisuArgs = {
     [ACCESS_TOKEN_EXPIRES]: RisuArgType.String,
     [REFRESH_TOKEN]: RisuArgType.String,
     [SYNC_ENABLED]: RisuArgType.Int,
+    [DELETED_INLAYS]: RisuArgType.String,
 }
 
 /**
