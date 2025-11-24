@@ -303,7 +303,7 @@ export class SyncManager {
 
             // Download drive inlays that don't exist locally
             if (options.download && toDownload.length > 0) {
-                this.updateProgress({ phase: 'downloading', current: report.uploaded });
+                this.updateProgress({ phase: 'downloading', current: 0, total: toDownload.length });
                 Logger.log(`Downloading ${toDownload.length} inlays...`);
 
                 for (let i = 0; i < toDownload.length; i++) {
@@ -311,7 +311,7 @@ export class SyncManager {
                     const id = toDownload[i];
                     
                     try {
-                        this.updateProgress({ current: report.uploaded + i + 1, currentFileName: id });
+                        this.updateProgress({ current: i + 1, currentFileName: id });
                         const data = await DriveManager.downloadInlay(id);
                         if (data) {
                             await InlayManager.setInlayData(id, data);
@@ -356,6 +356,7 @@ export class SyncManager {
                 }
             }
 
+            this.updateProgress({ phase: 'complete', current: totalOps, total: totalOps, currentFileName: 'Sync complete' });
             Logger.log('Sync complete:', report);
             return report;
         } finally {
