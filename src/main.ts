@@ -7,6 +7,7 @@ import { ChatTracker } from './tracker/chat';
 import { TrackerManager } from './tracker/index';
 import { initManagers } from './manager';
 import { UpdateManager } from './manager/update';
+import { AuthManager } from './manager/auth';
 
 initManagers();
 
@@ -23,6 +24,9 @@ RisuAPI.onUnload(() => {
     chatTracker.destroy();
     ui.destroy();
 });
+
+//@ts-ignore
+globalThis.login = AuthManager.login;
 
 (async () => {
     if (await UpdateManager.check()) return;

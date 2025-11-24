@@ -5,6 +5,10 @@ export {
     RISU_ARGS, 
     TIME_DB_ARG,
     CHAT_DB_ARG,
+    IS_LOGGED_IN,
+    ACCESS_TOKEN,
+    ACCESS_TOKEN_EXPIRES,
+    REFRESH_TOKEN,
     RisuArgType
 };
 
@@ -25,11 +29,18 @@ const PLUGIN_NAME = `${PLUGIN_TITLE} v${PLUGIN_VERSION}`
 // Argument Name Definitions
 const TIME_DB_ARG = 'time_db'
 const CHAT_DB_ARG = 'chat_db'
-
+const IS_LOGGED_IN = 'is_logged_in'
+const ACCESS_TOKEN = 'access_token'
+const ACCESS_TOKEN_EXPIRES = 'access_token_expires'
+const REFRESH_TOKEN = 'refresh_token'
 // Plugin Arguments Definition
 const RISU_ARGS: RisuArgs = {
     [TIME_DB_ARG]: RisuArgType.String,
     [CHAT_DB_ARG]: RisuArgType.String,
+    [IS_LOGGED_IN]: RisuArgType.Int,
+    [ACCESS_TOKEN]: RisuArgType.String,
+    [ACCESS_TOKEN_EXPIRES]: RisuArgType.String,
+    [REFRESH_TOKEN]: RisuArgType.String,
 }
 
 /**
