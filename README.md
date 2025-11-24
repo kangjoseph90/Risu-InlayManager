@@ -27,6 +27,9 @@ Risu InlayManager is a plugin designed to work with the RisuAI platform, offerin
 - **Request Concurrency**: Limits simultaneous data requests to prevent overload
 - **Cache Management**: Intelligent caching with automatic cleanup
 - **Virtual Scrolling**: Efficient rendering of large asset collections
+- **Parallel Sync**: Uploads and downloads run concurrently (5x faster sync)
+- **Batch File Lookups**: Reduces API calls during sync operations
+- **Optimized Data Structures**: Uses Sets for O(1) lookups instead of O(n) array operations
 
 ## Installation
 

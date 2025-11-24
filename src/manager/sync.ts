@@ -275,42 +275,58 @@ export class SyncManager {
 
             // Delete local inlays that are in tombstone set
             let deleteCount = 0;
-            for (const id of localToDelete) {
-                this.checkCancellation();
-                try {
-                    await InlayManager.deleteInlay(id);
-                    report.deleted++;
-                    deleteCount++;
-                    this.updateProgress({ current: deleteCount, currentFileName: id });
-                    Logger.log(`Deleted local inlay ${id} (tombstone)`);
-                } catch (e) {
-                    Logger.error(`Failed to delete local inlay ${id}:`, e);
-                    report.errors.push({ id, error: String(e) });
-                }
+            if (localToDelete.length > 0) {
+                const concurrency = options.concurrency || 5;
+                await this.processInParallel(
+                    localToDelete,
+                    async (id, index) => {
+                        try {
+                            await InlayManager.deleteInlay(id);
+                            report.deleted++;
+                            deleteCount++;
+                            this.updateProgress({ current: deleteCount, currentFileName: id });
+                            Logger.log(`Deleted local inlay ${id} (tombstone)`);
+                        } catch (e) {
+                            Logger.error(`Failed to delete local inlay ${id}:`, e);
+                            report.errors.push({ id, error: String(e) });
+                        }
+                    },
+                    concurrency
+                );
             }
 
             // Delete drive inlays that are in tombstone set
-            for (const id of driveToDelete) {
-                this.checkCancellation();
-                try {
-                    await DriveManager.deleteInlay(id);
-                    report.deleted++;
-                    deleteCount++;
-                    this.updateProgress({ current: deleteCount, currentFileName: id });
-                    Logger.log(`Deleted drive inlay ${id} (tombstone)`);
-                } catch (e) {
-                    Logger.error(`Failed to delete drive inlay ${id}:`, e);
-                    report.errors.push({ id, error: String(e) });
-                }
+            if (driveToDelete.length > 0) {
+                const concurrency = options.concurrency || 5;
+                await this.processInParallel(
+                    driveToDelete,
+                    async (id, index) => {
+                        try {
+                            await DriveManager.deleteInlay(id);
+                            report.deleted++;
+                            deleteCount++;
+                            this.updateProgress({ current: deleteCount, currentFileName: id });
+                            Logger.log(`Deleted drive inlay ${id} (tombstone)`);
+                        } catch (e) {
+                            Logger.error(`Failed to delete drive inlay ${id}:`, e);
+                            report.errors.push({ id, error: String(e) });
+                        }
+                    },
+                    concurrency
+                );
             }
 
             // Filter out deleted IDs from sync lists
             const activeLocalIds = localIds.filter(id => !deletedSet.has(id));
             const activeDriveIds = driveIds.filter(id => !deletedSet.has(id));
 
+            // Use Sets for O(1) lookups instead of O(n) with includes()
+            const activeLocalSet = new Set(activeLocalIds);
+            const activeDriveSet = new Set(activeDriveIds);
+
             // Calculate total operations
-            const toUpload = options.upload ? activeLocalIds.filter(id => !activeDriveIds.includes(id)) : [];
-            const toDownload = options.download ? activeDriveIds.filter(id => !activeLocalIds.includes(id)) : [];
+            const toUpload = options.upload ? activeLocalIds.filter(id => !activeDriveSet.has(id)) : [];
+            const toDownload = options.download ? activeDriveIds.filter(id => !activeLocalSet.has(id)) : [];
             const totalOps = toUpload.length + toDownload.length;
 
             // Upload local inlays that don't exist in drive
@@ -365,33 +381,49 @@ export class SyncManager {
 
             // Delete local inlays that don't exist in drive
             if (options.deleteLocal) {
-                const toDeleteLocal = localIds.filter(id => !driveIds.includes(id));
+                const driveIdSet = new Set(driveIds);
+                const toDeleteLocal = localIds.filter(id => !driveIdSet.has(id));
                 Logger.log(`Deleting ${toDeleteLocal.length} local inlays...`);
 
-                for (const id of toDeleteLocal) {
-                    try {
-                        await InlayManager.deleteInlay(id);
-                        report.deleted++;
-                    } catch (e) {
-                        Logger.error(`Failed to delete local inlay ${id}:`, e);
-                        report.errors.push({ id, error: String(e) });
-                    }
+                if (toDeleteLocal.length > 0) {
+                    const concurrency = options.concurrency || 5;
+                    await this.processInParallel(
+                        toDeleteLocal,
+                        async (id) => {
+                            try {
+                                await InlayManager.deleteInlay(id);
+                                report.deleted++;
+                            } catch (e) {
+                                Logger.error(`Failed to delete local inlay ${id}:`, e);
+                                report.errors.push({ id, error: String(e) });
+                            }
+                        },
+                        concurrency
+                    );
                 }
             }
 
             // Delete drive inlays that don't exist locally
             if (options.deleteDrive) {
-                const toDeleteDrive = driveIds.filter(id => !localIds.includes(id));
+                const localIdSet = new Set(localIds);
+                const toDeleteDrive = driveIds.filter(id => !localIdSet.has(id));
                 Logger.log(`Deleting ${toDeleteDrive.length} drive inlays...`);
 
-                for (const id of toDeleteDrive) {
-                    try {
-                        await DriveManager.deleteInlay(id);
-                        report.deleted++;
-                    } catch (e) {
-                        Logger.error(`Failed to delete drive inlay ${id}:`, e);
-                        report.errors.push({ id, error: String(e) });
-                    }
+                if (toDeleteDrive.length > 0) {
+                    const concurrency = options.concurrency || 5;
+                    await this.processInParallel(
+                        toDeleteDrive,
+                        async (id) => {
+                            try {
+                                await DriveManager.deleteInlay(id);
+                                report.deleted++;
+                            } catch (e) {
+                                Logger.error(`Failed to delete drive inlay ${id}:`, e);
+                                report.errors.push({ id, error: String(e) });
+                            }
+                        },
+                        concurrency
+                    );
                 }
             }
 
