@@ -1,4 +1,5 @@
 import { ScriptMode, RisuAPI, type EditFunction } from '../api';
+import { Logger } from '../logger';
 
 type TrackerCallback = (key: string) => Promise<void>;
 
@@ -16,7 +17,7 @@ export class TrackerManager {
                 await Promise.all(this.subscribers.map(cb => cb(parsed)));
             }
         } catch (error) {
-            console.warn('Error processing inlay tag:', error);
+            Logger.warn('Error processing inlay tag:', error);
         }
         return content;
     };

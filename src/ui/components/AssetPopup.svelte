@@ -4,6 +4,7 @@
     import { ChevronLeft, ChevronRight, CircleAlert, X } from "lucide-svelte";
     import { onMount, onDestroy } from "svelte";
     import Loading from "./Loading.svelte";
+    import { Logger } from "../../logger";
     
     export let currentKey: string;
     export let allKeys: string[];
@@ -36,7 +37,7 @@
             type = data.type;
         } catch (err) {
             error = err instanceof Error ? err.message : '로드 실패';
-            console.error(`Failed to load asset ${currentKey}:`, err);
+            Logger.error(`Failed to load asset ${currentKey}:`, err);
         } finally {
             loading = false;
         }

@@ -207,7 +207,7 @@
                 // Small delay between downloads
                 await new Promise(resolve => setTimeout(resolve, 100));
             } catch (error) {
-                console.error(`Failed to download asset ${key}:`, error);
+                Logger.error(`Failed to download asset ${key}:`, error);
             }
         }
         
@@ -228,7 +228,7 @@
             await loadMetadatas();
             exitSelectionMode();
         } catch (error) {
-            console.error('Failed to delete assets:', error);
+            Logger.error('Failed to delete assets:', error);
             alert('에셋 삭제에 실패했습니다.');
         }
     }
@@ -264,7 +264,7 @@
             }
             characters = loadedChars;
         } catch (e) {
-            console.error("Failed to load characters", e);
+            Logger.error("Failed to load characters", e);
         }
     }
 
@@ -298,7 +298,7 @@
             }
             chats = loadedChats;
         } catch (e) {
-             console.error("Failed to load chats", e);
+             Logger.error("Failed to load chats", e);
         }
     }
 

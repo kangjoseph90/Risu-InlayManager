@@ -1,4 +1,5 @@
 import { RisuAPI } from '../api';
+import { Logger } from '../logger';
 import { ChatManager } from '../manager/chat';
 import { TrackerManager } from './index';
 
@@ -26,7 +27,7 @@ export class ChatTracker {
                 }
             }
         } catch (error) {
-            console.warn('Error tracking chat info:', error);
+            Logger.warn('Error tracking chat info:', error);
         }
     }
 }

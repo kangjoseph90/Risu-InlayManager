@@ -3,6 +3,7 @@
     import Loading from "./Loading.svelte";
     import { DataManager } from "../../manager/data";
     import { Image, Video, Music, CircleAlert, AudioLines } from "lucide-svelte";
+    import { Logger } from "../../logger";
     
     export let key: string;
     export let width: string = "w-full";
@@ -35,7 +36,7 @@
             type = data.type;
         } catch (err) {
             error = err instanceof Error ? err.message : '로드 실패';
-            console.error(`Failed to load asset ${key}:`, err);
+            Logger.error(`Failed to load asset ${key}:`, err);
         } finally {
             loading = false;
         }

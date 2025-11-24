@@ -16,8 +16,8 @@ export default defineConfig({
   build: {
     lib: {
       entry: 'src/main.ts', // Plugin entry file
-      name: 'inlay-manager', // Plugin name
-      fileName: () => 'inlay-manager.js', // Output file name
+      name: 'risu-inlay-manager', // Plugin name
+      fileName: () => 'risu-inlay-manager.js', // Output file name
       formats: ['umd']
     },
     rollupOptions: {

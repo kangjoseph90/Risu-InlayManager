@@ -43,10 +43,10 @@ function generateRisuHeader(pluginConfig: string): string {
   const versionMatch = pluginConfig.match(/PLUGIN_VERSION\s*=\s*['"](.+?)['"]/);
   
   const title = titleMatch ? titleMatch[1] : 'unnamed-plugin';
-  const version = versionMatch ? versionMatch[1] : 'v1.0.0';
+  const version = versionMatch ? versionMatch[1] : '1.0.0';
   
   // 플러그인 이름 (필수)
-  lines.push(`//@name ${title}-${version}`);
+  lines.push(`//@name ${title} v${version}`);
   
   // 디스플레이 이름 (선택)
   lines.push(`//@display-name ${title}`);

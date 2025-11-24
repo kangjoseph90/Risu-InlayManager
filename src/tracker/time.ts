@@ -1,3 +1,4 @@
+import { Logger } from '../logger';
 import { TimeManager } from '../manager/time';
 import { TrackerManager } from './index';
 
@@ -10,7 +11,7 @@ export class TimeTracker {
         try {
             await TimeManager.setTime(key, new Date());
         } catch (error) {
-            console.warn('Error setting timestamp:', error);
+            Logger.warn('Error setting timestamp:', error);
         }
     }
 }

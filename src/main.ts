@@ -5,6 +5,9 @@ import { UI } from './ui';
 import { TimeTracker } from './tracker/time';
 import { ChatTracker } from './tracker/chat';
 import { TrackerManager } from './tracker/index';
+import { initManagers } from './manager';
+
+initManagers();
 
 // Initialize trackers
 const trackerManager = TrackerManager.getInstance();
