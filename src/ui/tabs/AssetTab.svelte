@@ -348,10 +348,10 @@
 <div class="flex flex-col h-full">
     <!-- Filter Toolbar -->
     {#if !selectionMode}
-        <div class="flex items-center gap-2 p-2 bg-zinc-800/50 rounded-lg mb-2 flex-wrap z-20 relative">
+        <div class="flex items-center gap-2 py-2 px-4 bg-zinc-800/50 rounded-lg mb-2 flex-wrap z-20 relative">
             <div class="flex items-center gap-2">
                 <Filter size={18} class="text-zinc-400" />
-                <span class="text-sm font-medium text-zinc-300">Filters:</span>
+                <span class="text-sm font-medium text-zinc-300">필터:</span>
             </div>
 
             <!-- Character Filter Dropdown -->
@@ -368,7 +368,7 @@
                             {/if}
                             <span class="truncate">{selectedChar?.name || 'Unknown Character'}</span>
                         {:else}
-                            <span>All Characters</span>
+                            <span>모든 캐릭터</span>
                         {/if}
                     </div>
                     <ChevronDown size={14} class="text-zinc-400 transition-transform {showCharDropdown ? 'rotate-180' : ''}" />
@@ -382,7 +382,7 @@
                             class:text-white={selectedCharId === ""}
                             on:click={() => { selectedCharId = ""; showCharDropdown = false; }}
                         >
-                            <span>All Characters</span>
+                            <span>모든 캐릭터</span>
                         </button>
                         {#each characters as char}
                             <button
@@ -426,7 +426,7 @@
                                 class:text-white={selectedChatId === ""}
                                 on:click={() => { selectedChatId = ""; showChatDropdown = false; }}
                             >
-                                <span>All Chats</span>
+                                <span>모든 채팅</span>
                             </button>
                             {#each chats as chat}
                                 <button

@@ -15,7 +15,30 @@ export class InlayManager {
         return await db.getItem(key) as InlayData | null;
     }
 
+    static async setInlayData(key: string, data: InlayData): Promise<void> {
+        await db.setItem(key, data);
+    }
+
     static async deleteInlay(key: string): Promise<void> {
         await db.removeItem(key);
+    }
+
+    static async getAllInlays(): Promise<Map<string, InlayData>> {
+        const keys = await this.getKeys();
+        const map = new Map<string, InlayData>();
+        
+        for (const key of keys) {
+            const data = await this.getInlayData(key);
+            if (data) {
+                map.set(key, data);
+            }
+        }
+        
+        return map;
+    }
+
+    static async hasInlay(key: string): Promise<boolean> {
+        const data = await this.getInlayData(key);
+        return data !== null;
     }
 }

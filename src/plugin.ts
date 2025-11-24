@@ -9,6 +9,7 @@ export {
     ACCESS_TOKEN,
     ACCESS_TOKEN_EXPIRES,
     REFRESH_TOKEN,
+    SYNC_ENABLED,
     RisuArgType
 };
 
@@ -33,6 +34,7 @@ const IS_LOGGED_IN = 'is_logged_in'
 const ACCESS_TOKEN = 'access_token'
 const ACCESS_TOKEN_EXPIRES = 'access_token_expires'
 const REFRESH_TOKEN = 'refresh_token'
+const SYNC_ENABLED = 'sync_enabled'
 // Plugin Arguments Definition
 const RISU_ARGS: RisuArgs = {
     [TIME_DB_ARG]: RisuArgType.String,
@@ -41,6 +43,7 @@ const RISU_ARGS: RisuArgs = {
     [ACCESS_TOKEN]: RisuArgType.String,
     [ACCESS_TOKEN_EXPIRES]: RisuArgType.String,
     [REFRESH_TOKEN]: RisuArgType.String,
+    [SYNC_ENABLED]: RisuArgType.Int,
 }
 
 /**

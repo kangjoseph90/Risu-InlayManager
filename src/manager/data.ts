@@ -1,6 +1,7 @@
 import { InlayType } from "../types";
 import { InlayManager } from "./inlay";
 import { Queue } from '@datastructures-js/queue';
+import { base64ToBlob } from "../util";
 
 // Cache management
 const dataCache = new Map<string, { url: string, type: InlayType }>();
@@ -15,20 +16,6 @@ const requestQueue: Array<{
     resolve: (value: { url: string, type: InlayType } | null) => void;
     reject: (reason?: any) => void;
 }> = [];
-
-function base64ToBlob(b64: string): Blob {
-    const splitDataURI = b64.split(',');
-    const byteString = atob(splitDataURI[1]);
-    const mimeString = splitDataURI[0].split(':')[1].split(';')[0];
-
-    const ab = new ArrayBuffer(byteString.length);
-    const ia = new Uint8Array(ab);
-    for (let i = 0; i < byteString.length; i++) {
-        ia[i] = byteString.charCodeAt(i);
-    }
-
-    return new Blob([ab], { type: mimeString });
-}
 
 export class DataManager {
     static async getDataType(key: string): Promise<InlayType | null> {

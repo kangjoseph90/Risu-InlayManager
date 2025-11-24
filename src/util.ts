@@ -48,3 +48,50 @@ export function debounce<T extends (...args: any[]) => void>(
         }, wait);
     };
 }
+
+/**
+ * Converts a base64 data URI to a Blob object.
+ * @param b64 The base64 data URI string (e.g., "data:image/png;base64,...")
+ * @returns A Blob object
+ */
+export function base64ToBlob(b64: string): Blob {
+    const splitDataURI = b64.split(',');
+    const byteString = atob(splitDataURI[1]);
+    const mimeString = splitDataURI[0].split(':')[1].split(';')[0];
+
+    const ab = new ArrayBuffer(byteString.length);
+    const ia = new Uint8Array(ab);
+    for (let i = 0; i < byteString.length; i++) {
+        ia[i] = byteString.charCodeAt(i);
+    }
+
+    return new Blob([ab], { type: mimeString });
+}
+
+/**
+ * Converts a Blob to a base64 data URI string.
+ * @param blob The Blob to convert
+ * @returns A Promise that resolves to a base64 data URI string
+ */
+export function blobToBase64(blob: Blob): Promise<string> {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+    });
+}
+
+/**
+ * Converts InlayData to a serializable object with string data (for Google Drive).
+ * If data is a Blob, converts it to base64 data URI.
+ * @param data The InlayData object
+ * @returns A Promise that resolves to a serializable object
+ */
+export async function inlayDataToSerializable(data: any): Promise<any> {
+    if (data.data instanceof Blob) {
+        const base64 = await blobToBase64(data.data);
+        return { ...data, data: base64 };
+    }
+    return data;
+}
