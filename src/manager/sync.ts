@@ -42,6 +42,7 @@ export class SyncManager {
     private static isSyncing = false;
     private static cancelRequested = false;
     private static progressCallback: SyncProgressCallback | null = null;
+    private static defaultConcurrency = 5;
     private static currentProgress: SyncProgress = {
         phase: 'preparing',
         current: 0,
@@ -50,6 +51,20 @@ export class SyncManager {
         bytesTransferred: 0,
         totalBytes: 0
     };
+
+    /**
+     * Set default concurrency for sync operations
+     */
+    static setConcurrency(value: number): void {
+        this.defaultConcurrency = Math.max(3, Math.min(15, value));
+    }
+
+    /**
+     * Get current concurrency setting
+     */
+    static getConcurrency(): number {
+        return this.defaultConcurrency;
+    }
 
     /**
      * Process items in parallel with concurrency control
@@ -227,8 +242,7 @@ export class SyncManager {
         upload: true,
         download: true,
         deleteLocal: false,
-        deleteDrive: false,
-        concurrency: 5
+        deleteDrive: false
     }): Promise<SyncReport> {
         if (this.isSyncing) {
             throw new Error('Sync already in progress');
@@ -279,7 +293,7 @@ export class SyncManager {
             // Delete local inlays that are in tombstone set
             let deleteCount = 0;
             if (localToDelete.length > 0) {
-                const concurrency = options.concurrency || 5;
+                const concurrency = options.concurrency || this.defaultConcurrency;
                 await this.processInParallel(
                     localToDelete,
                     async (id, index) => {
@@ -300,7 +314,7 @@ export class SyncManager {
 
             // Delete drive inlays that are in tombstone set
             if (driveToDelete.length > 0) {
-                const concurrency = options.concurrency || 5;
+                const concurrency = options.concurrency || this.defaultConcurrency;
                 await this.processInParallel(
                     driveToDelete,
                     async (id, index) => {
@@ -335,9 +349,9 @@ export class SyncManager {
             // Upload local inlays that don't exist in drive
             if (options.upload && toUpload.length > 0) {
                 this.updateProgress({ phase: 'uploading', total: totalOps, current: 0 });
-                Logger.log(`Uploading ${toUpload.length} inlays with concurrency ${options.concurrency || 5}...`);
+                Logger.log(`Uploading ${toUpload.length} inlays with concurrency ${options.concurrency || this.defaultConcurrency}...`);
 
-                const concurrency = options.concurrency || 5;
+                const concurrency = options.concurrency || this.defaultConcurrency;
                 let uploadCompleted = 0;
                 await this.processInParallel(
                     toUpload,
@@ -362,9 +376,9 @@ export class SyncManager {
             // Download drive inlays that don't exist locally
             if (options.download && toDownload.length > 0) {
                 this.updateProgress({ phase: 'downloading', current: 0, total: toDownload.length });
-                Logger.log(`Downloading ${toDownload.length} inlays with concurrency ${options.concurrency || 5}...`);
+                Logger.log(`Downloading ${toDownload.length} inlays with concurrency ${options.concurrency || this.defaultConcurrency}...`);
 
-                const concurrency = options.concurrency || 5;
+                const concurrency = options.concurrency || this.defaultConcurrency;
                 let downloadCompleted = 0;
                 await this.processInParallel(
                     toDownload,
@@ -393,7 +407,7 @@ export class SyncManager {
                 Logger.log(`Deleting ${toDeleteLocal.length} local inlays...`);
 
                 if (toDeleteLocal.length > 0) {
-                    const concurrency = options.concurrency || 5;
+                    const concurrency = options.concurrency || this.defaultConcurrency;
                     await this.processInParallel(
                         toDeleteLocal,
                         async (id) => {
@@ -417,7 +431,7 @@ export class SyncManager {
                 Logger.log(`Deleting ${toDeleteDrive.length} drive inlays...`);
 
                 if (toDeleteDrive.length > 0) {
-                    const concurrency = options.concurrency || 5;
+                    const concurrency = options.concurrency || this.defaultConcurrency;
                     await this.processInParallel(
                         toDeleteDrive,
                         async (id) => {
@@ -447,39 +461,39 @@ export class SyncManager {
     /**
      * Push all local inlays to drive (backup)
      */
-    static async pushToCloud(concurrency: number = 5): Promise<SyncReport> {
+    static async pushToCloud(): Promise<SyncReport> {
         return await this.sync({
             upload: true,
             download: false,
             deleteLocal: false,
             deleteDrive: false,
-            concurrency
+            concurrency: this.defaultConcurrency
         });
     }
 
     /**
      * Pull all drive inlays to local (restore)
      */
-    static async pullFromCloud(concurrency: number = 5): Promise<SyncReport> {
+    static async pullFromCloud(): Promise<SyncReport> {
         return await this.sync({
             upload: false,
             download: true,
             deleteLocal: false,
             deleteDrive: false,
-            concurrency
+            concurrency: this.defaultConcurrency
         });
     }
 
     /**
      * Full bidirectional sync (merge)
      */
-    static async mergeSync(concurrency: number = 5): Promise<SyncReport> {
+    static async mergeSync(): Promise<SyncReport> {
         return await this.sync({
             upload: true,
             download: true,
             deleteLocal: false,
             deleteDrive: false,
-            concurrency
+            concurrency: this.defaultConcurrency
         });
     }
 

@@ -1,14 +1,25 @@
 <script lang="ts">
     import { createEventDispatcher, onMount, onDestroy } from "svelte";
     import { X, Upload, Download, Settings, Loader2 } from "lucide-svelte";
-    import { PLUGIN_NAME } from "../../plugin";
+    import { PLUGIN_NAME, SYNC_CONCURRENCY } from "../../plugin";
     import { SyncManager } from "../../manager";
+    import { RisuAPI } from "../../api";
 
     export let isLoggedIn: boolean = false;
     export let userProfile: { name: string; picture: string; email: string } | null = null;
     export let syncEnabled: boolean = false;
 
     const dispatch = createEventDispatcher();
+    
+    // Concurrency setting (default: 5, range: 3-15)
+    let concurrency = (RisuAPI.getArg(SYNC_CONCURRENCY) as number) || 5;
+    
+    function handleConcurrencyChange(event: Event) {
+        const target = event.target as HTMLInputElement;
+        concurrency = parseInt(target.value);
+        RisuAPI.setArg(SYNC_CONCURRENCY, concurrency);
+        SyncManager.setConcurrency(concurrency);
+    }
 
     let showProfileDropdown = false;
     let showSettingsDropdown = false;
@@ -119,7 +130,7 @@
                             </p>
                         </div>
                         <!-- Sync Menu -->
-                        <div class="px-4 py-3 border-b border-zinc-700/50">
+                        <div class="px-4 py-3 border-b border-zinc-700/50 space-y-3">
                             <div class="flex items-center justify-between">
                                 <span class="text-sm font-medium text-zinc-300">자동 동기화</span>
                                 <button
@@ -128,6 +139,24 @@
                                 >
                                     <span class="inline-block h-4 w-4 transform rounded-full bg-white transition-transform {syncEnabled ? 'translate-x-6' : 'translate-x-1'}"></span>
                                 </button>
+                            </div>
+                            <div class="space-y-1.5">
+                                <div class="flex items-center justify-between">
+                                    <span class="text-sm font-medium text-zinc-300">동기화 속도</span>
+                                    <span class="text-xs text-zinc-500">{concurrency}</span>
+                                </div>
+                                <input
+                                    type="range"
+                                    min="3"
+                                    max="15"
+                                    bind:value={concurrency}
+                                    on:change={handleConcurrencyChange}
+                                    class="w-full h-1.5 bg-zinc-700 rounded-lg appearance-none cursor-pointer accent-blue-500"
+                                />
+                                <div class="flex justify-between text-xs text-zinc-500">
+                                    <span>안정</span>
+                                    <span>빠름</span>
+                                </div>
                             </div>
                         </div>
                         <button
