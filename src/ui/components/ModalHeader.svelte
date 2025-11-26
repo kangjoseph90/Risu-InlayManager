@@ -1,9 +1,8 @@
 <script lang="ts">
     import { createEventDispatcher, onMount, onDestroy } from "svelte";
     import { X, Upload, Download, Settings, Loader2 } from "lucide-svelte";
-    import { PLUGIN_NAME, SYNC_CONCURRENCY } from "../../plugin";
+    import { PLUGIN_NAME } from "../../plugin";
     import { SyncManager } from "../../manager";
-    import { RisuAPI } from "../../api";
 
     export let isLoggedIn: boolean = false;
     export let userProfile: { name: string; picture: string; email: string } | null = null;
@@ -11,13 +10,12 @@
 
     const dispatch = createEventDispatcher();
     
-    // Concurrency setting (default: 5, range: 3-15)
-    let concurrency = (RisuAPI.getArg(SYNC_CONCURRENCY) as number) || 5;
+    // Concurrency setting (range: 3-15)
+    let concurrency = SyncManager.getConcurrency();
     
     function handleConcurrencyChange(event: Event) {
         const target = event.target as HTMLInputElement;
         concurrency = parseInt(target.value);
-        RisuAPI.setArg(SYNC_CONCURRENCY, concurrency);
         SyncManager.setConcurrency(concurrency);
     }
 
@@ -33,6 +31,10 @@
         showSettingsDropdown = false;
         backupOptionsExpanded = false;
         restoreOptionsExpanded = false;
+    }
+
+    export function refreshConcurrency() {
+        concurrency = SyncManager.getConcurrency();
     }
 
     function toggleBackupOptions() {

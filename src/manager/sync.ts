@@ -3,7 +3,7 @@ import { DriveManager } from "./drive";
 import { Logger } from "../logger";
 import { AuthManager } from "./auth";
 import { RisuAPI } from "../api";
-import { DELETED_INLAYS } from "../plugin";
+import { DELETED_INLAYS, SYNC_CONCURRENCY } from "../plugin";
 import type { InlayData } from "../types";
 import { InlayType } from "../types";
 
@@ -23,8 +23,8 @@ export interface SyncOptions {
     deleteLocal?: boolean;
     /** Delete drive inlays that don't exist locally */
     deleteDrive?: boolean;
-    /** Maximum concurrent operations (default: 5) */
-    concurrency?: number;
+    /** Maximum concurrent operations */
+    concurrency: number;
 }
 
 export interface SyncProgress {
@@ -42,7 +42,6 @@ export class SyncManager {
     private static isSyncing = false;
     private static cancelRequested = false;
     private static progressCallback: SyncProgressCallback | null = null;
-    private static defaultConcurrency = 5;
     private static currentProgress: SyncProgress = {
         phase: 'preparing',
         current: 0,
@@ -53,17 +52,23 @@ export class SyncManager {
     };
 
     /**
-     * Set default concurrency for sync operations
+     * Set concurrency value to RisuArg
      */
     static setConcurrency(value: number): void {
-        this.defaultConcurrency = Math.max(3, Math.min(15, value));
+        const clampedValue = Math.max(3, Math.min(15, value));
+        RisuAPI.setArg(SYNC_CONCURRENCY, clampedValue);
     }
 
     /**
-     * Get current concurrency setting
+     * Get concurrency from RisuArg. Returns 5 if not set or 0.
      */
     static getConcurrency(): number {
-        return this.defaultConcurrency;
+        const value = RisuAPI.getArg(SYNC_CONCURRENCY) as number;
+        if (!value || value === 0) {
+            RisuAPI.setArg(SYNC_CONCURRENCY, 5);
+            return 5;
+        }
+        return value;
     }
 
     /**
@@ -238,12 +243,7 @@ export class SyncManager {
     /**
      * Performs a bidirectional sync between local and drive
      */
-    static async sync(options: SyncOptions = {
-        upload: true,
-        download: true,
-        deleteLocal: false,
-        deleteDrive: false
-    }): Promise<SyncReport> {
+    static async sync(options: SyncOptions): Promise<SyncReport> {
         if (this.isSyncing) {
             throw new Error('Sync already in progress');
         }
@@ -293,7 +293,6 @@ export class SyncManager {
             // Delete local inlays that are in tombstone set
             let deleteCount = 0;
             if (localToDelete.length > 0) {
-                const concurrency = options.concurrency || this.defaultConcurrency;
                 await this.processInParallel(
                     localToDelete,
                     async (id, index) => {
@@ -308,13 +307,12 @@ export class SyncManager {
                             report.errors.push({ id, error: String(e) });
                         }
                     },
-                    concurrency
+                    options.concurrency
                 );
             }
 
             // Delete drive inlays that are in tombstone set
             if (driveToDelete.length > 0) {
-                const concurrency = options.concurrency || this.defaultConcurrency;
                 await this.processInParallel(
                     driveToDelete,
                     async (id, index) => {
@@ -329,7 +327,7 @@ export class SyncManager {
                             report.errors.push({ id, error: String(e) });
                         }
                     },
-                    concurrency
+                    options.concurrency
                 );
             }
 
@@ -349,9 +347,8 @@ export class SyncManager {
             // Upload local inlays that don't exist in drive
             if (options.upload && toUpload.length > 0) {
                 this.updateProgress({ phase: 'uploading', total: totalOps, current: 0 });
-                Logger.log(`Uploading ${toUpload.length} inlays with concurrency ${options.concurrency || this.defaultConcurrency}...`);
+                Logger.log(`Uploading ${toUpload.length} inlays with concurrency ${options.concurrency}...`);
 
-                const concurrency = options.concurrency || this.defaultConcurrency;
                 let uploadCompleted = 0;
                 await this.processInParallel(
                     toUpload,
@@ -369,16 +366,15 @@ export class SyncManager {
                             report.errors.push({ id, error: String(e) });
                         }
                     },
-                    concurrency
+                    options.concurrency
                 );
             }
 
             // Download drive inlays that don't exist locally
             if (options.download && toDownload.length > 0) {
                 this.updateProgress({ phase: 'downloading', current: 0, total: toDownload.length });
-                Logger.log(`Downloading ${toDownload.length} inlays with concurrency ${options.concurrency || this.defaultConcurrency}...`);
+                Logger.log(`Downloading ${toDownload.length} inlays with concurrency ${options.concurrency}...`);
 
-                const concurrency = options.concurrency || this.defaultConcurrency;
                 let downloadCompleted = 0;
                 await this.processInParallel(
                     toDownload,
@@ -396,7 +392,7 @@ export class SyncManager {
                             report.errors.push({ id, error: String(e) });
                         }
                     },
-                    concurrency
+                    options.concurrency
                 );
             }
 
@@ -407,7 +403,6 @@ export class SyncManager {
                 Logger.log(`Deleting ${toDeleteLocal.length} local inlays...`);
 
                 if (toDeleteLocal.length > 0) {
-                    const concurrency = options.concurrency || this.defaultConcurrency;
                     await this.processInParallel(
                         toDeleteLocal,
                         async (id) => {
@@ -419,7 +414,7 @@ export class SyncManager {
                                 report.errors.push({ id, error: String(e) });
                             }
                         },
-                        concurrency
+                        options.concurrency
                     );
                 }
             }
@@ -431,7 +426,6 @@ export class SyncManager {
                 Logger.log(`Deleting ${toDeleteDrive.length} drive inlays...`);
 
                 if (toDeleteDrive.length > 0) {
-                    const concurrency = options.concurrency || this.defaultConcurrency;
                     await this.processInParallel(
                         toDeleteDrive,
                         async (id) => {
@@ -443,7 +437,7 @@ export class SyncManager {
                                 report.errors.push({ id, error: String(e) });
                             }
                         },
-                        concurrency
+                        options.concurrency
                     );
                 }
             }
@@ -467,7 +461,7 @@ export class SyncManager {
             download: false,
             deleteLocal: false,
             deleteDrive: false,
-            concurrency: this.defaultConcurrency
+            concurrency: this.getConcurrency()
         });
     }
 
@@ -480,7 +474,7 @@ export class SyncManager {
             download: true,
             deleteLocal: false,
             deleteDrive: false,
-            concurrency: this.defaultConcurrency
+            concurrency: this.getConcurrency()
         });
     }
 
@@ -493,7 +487,7 @@ export class SyncManager {
             download: true,
             deleteLocal: false,
             deleteDrive: false,
-            concurrency: this.defaultConcurrency
+            concurrency: this.getConcurrency()
         });
     }
 

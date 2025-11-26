@@ -167,6 +167,7 @@
                     // Reload settings
                     await checkLoginStatus();
                     loadSyncSettings();
+                    modalHeader?.refreshConcurrency();
                     // Reload filters
                     if (assetTab) {
                         await assetTab.reloadFilters();
@@ -201,6 +202,7 @@
                 // Reload settings
                 await checkLoginStatus();
                 loadSyncSettings();
+                modalHeader?.refreshConcurrency();
                 // Reload filters
                 if (assetTab) {
                     await assetTab.reloadFilters();
