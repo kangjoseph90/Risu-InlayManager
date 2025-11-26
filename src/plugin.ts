@@ -26,7 +26,7 @@ interface RisuArgs {
 
 // Plugin Info
 const PLUGIN_TITLE = 'InlayManager'
-const PLUGIN_VERSION = '0.3.2' 
+const PLUGIN_VERSION = '0.3.3' 
 const PLUGIN_NAME = `${PLUGIN_TITLE} v${PLUGIN_VERSION}`
 
 // Argument Name Definitions
