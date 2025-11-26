@@ -190,6 +190,17 @@
         selectedAssets = selectedAssets;
     }
 
+    function selectAll() {
+        for (const key of sortedKeys) {
+            selectedAssets.add(key);
+        }
+        selectedAssets = selectedAssets;
+    }
+
+    function deselectAll() {
+        selectedAssets.clear();
+        selectedAssets = selectedAssets;
+    }
     
     async function downloadSelected() {
         if (selectedAssets.size === 0) return;
@@ -500,6 +511,25 @@
                     </span>
                 </div>
                 <div class="flex items-center gap-2">
+                    {#if selectedAssets.size === sortedKeys.length}
+                        <button
+                            on:click={deselectAll}
+                            class="flex items-center gap-2 px-4 py-2 bg-white/10 text-white rounded-lg
+                                   hover:bg-white/20 transition-colors font-medium"
+                        >
+                            <X class="w-4 h-4" />
+                            선택 해제
+                        </button>
+                    {:else}
+                        <button
+                            on:click={selectAll}
+                            class="flex items-center gap-2 px-4 py-2 bg-white/10 text-white rounded-lg
+                                   hover:bg-white/20 transition-colors font-medium"
+                        >
+                            <Check class="w-4 h-4" />
+                            전체 선택
+                        </button>
+                    {/if}
                     <button
                         on:click={deleteSelected}
                         disabled={selectedAssets.size === 0}
