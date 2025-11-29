@@ -1,56 +1,49 @@
-# Risu InlayManager
+# Risu Inlay Manager
 
-A plugin for RisuAI that provides comprehensive management of inlay assets (images, videos, and audio files) with an intuitive user interface.
-
-## Overview
-
-Risu InlayManager is a plugin designed to work with the RisuAI platform, offering a complete solution for managing inlay assets. It provides features for viewing, organizing, selecting, and managing multimedia assets that can be embedded within chat conversations.
+A comprehensive plugin for RisuAI that manages inlay assets, and syncs inlay data across devices.
 
 ## Features
 
-### Asset Management
-- **Multi-format Support**: Handles images, videos, and audio files
-- **Virtual Grid Display**: Efficient rendering of large asset collections with lazy loading
-- **Asset Organization**: Sorts assets by creation date with newest first
-- **Selection Mode**: Multi-select functionality with long-press gesture support
-- **Batch Operations**: Delete and download multiple assets simultaneously
+### Inlay Asset Management
 
-### User Interface
-- **Responsive Design**: Adapts to different screen sizes with dynamic column layout
-- **Asset Viewer**: Dedicated component for viewing different media types
-- **Popup Viewer**: Full-screen modal for detailed asset viewing with navigation
-- **Touch Gestures**: Swipe navigation support on mobile devices
-- **Keyboard Shortcuts**: Arrow keys for navigation, Escape to close popups
+-   **Asset Organization**: Manage and organize your inlay assets (images, overlays) efficiently.
+-   **Visual Interface**: User-friendly UI for browsing and selecting inlays.
 
-### Performance Optimizations
-- **Lazy Loading**: Assets only load when visible in viewport
-- **Request Concurrency**: Limits simultaneous data requests to prevent overload
-- **Cache Management**: Intelligent caching with automatic cleanup
-- **Virtual Scrolling**: Efficient rendering of large asset collections
-- **Parallel Sync**: Uploads and downloads run concurrently (5x faster sync)
-- **Batch File Lookups**: Reduces API calls during sync operations
-- **Optimized Data Structures**: Uses Sets for O(1) lookups instead of O(n) array operations
+### Data Synchronization
 
-## Installation
+-   **Cloud Sync**: Sync your inlay data using **Google Drive**.
+-   **Auto Sync**: Automatically keeps your data in sync across multiple devices.
+-   **Backup & Restore**: Create backups of your data and restore them whenever needed.
 
-1. Clone the repository:
-```bash
-git clone https://github.com/your-repo/Risu-InlayManager.git
-cd Risu-InlayManager
-```
+### System
 
-2. Install dependencies:
-```bash
+-   **Auto Update**: Automatically checks for plugin updates to ensure you have the latest features.
+-   **Secure Auth**: Handles authentication securely for cloud services.
+
+---
+
+## Installation & Build
+
+### 1. Install Dependencies
+
+```sh
 npm install
 ```
 
-3. Build the plugin:
-```bash
+### 2. Build Plugin
+
+```sh
 npm run build
 ```
 
-4. Load the built plugin in RisuAI
+This will generate a `dist/risu-inlay-manager.js` file.
+
+### 3. Import to RisuAI
+
+Import the generated `dist/risu-inlay-manager.js` file into RisuAI as a plugin.
+
+---
 
 ## License
 
-This project is proprietary and intended for use with RisuAI only.
+This project is licensed under the **MIT License**.
