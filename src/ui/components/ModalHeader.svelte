@@ -93,7 +93,8 @@
         {#if isLoggedIn && userProfile}
             <div class="relative">
                 <button
-                    class="flex items-center gap-3 pl-4 pr-1 py-1 rounded-full hover:bg-zinc-700/50 transition-all duration-200 group"
+                    class="flex items-center gap-3 pl-4 pr-1 py-1 rounded-full hover:bg-zinc-700/50 transition-all duration-200 group focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-800 focus-visible:outline-none"
+                    aria-label="사용자 메뉴"
                     on:click|stopPropagation={() => {
                         const wasOpen = showProfileDropdown;
                         closeAllDropdowns();
@@ -220,8 +221,9 @@
             </div>
         {:else}
             <button
-                class="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-sm font-medium transition-all shadow-lg shadow-blue-900/20"
+                class="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-sm font-medium transition-all shadow-lg shadow-blue-900/20 focus-visible:ring-2 focus-visible:ring-blue-400 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-800 focus-visible:outline-none"
                 on:click={() => dispatch("login")}
+                aria-label="로그인"
             >
                 <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
                     <path d="M12.545,10.239v3.821h5.445c-0.712,2.315-2.647,3.972-5.445,3.972c-3.332,0-6.033-2.701-6.033-6.032s2.701-6.032,6.033-6.032c1.498,0,2.866,0.549,3.921,1.453l2.814-2.814C17.503,2.988,15.139,2,12.545,2C7.021,2,2.543,6.477,2.543,12s4.478,10,10.002,10c8.396,0,10.249-7.85,9.426-11.748L12.545,10.239z" />
@@ -233,13 +235,14 @@
         <!-- Settings Dropdown -->
         <div class="relative">
             <button
-                class="p-2 text-zinc-400 hover:text-white hover:bg-zinc-700/50 rounded-lg transition-all duration-200"
+                class="p-2 text-zinc-400 hover:text-white hover:bg-zinc-700/50 rounded-lg transition-all duration-200 focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-800 focus-visible:outline-none"
                 on:click|stopPropagation={() => {
                     const wasOpen = showSettingsDropdown;
                     closeAllDropdowns();
                     showSettingsDropdown = !wasOpen;
                 }}
                 title="설정"
+                aria-label="설정"
             >
                 <Settings size={20} />
             </button>
@@ -307,8 +310,9 @@
         </div>
 
         <button
-            class="p-2 text-zinc-400 hover:text-white hover:bg-zinc-700/50 rounded-lg transition-all duration-200 ml-1"
+            class="p-2 text-zinc-400 hover:text-white hover:bg-zinc-700/50 rounded-lg transition-all duration-200 ml-1 focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-800 focus-visible:outline-none"
             on:click={() => dispatch("close")}
+            aria-label="닫기"
         >
             <X size={20} />
         </button>
