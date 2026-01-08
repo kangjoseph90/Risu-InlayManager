@@ -6,6 +6,9 @@ export default {
   theme: {
     extend: {},
   },
+  corePlugins: {
+    preflight: false,
+  },
   plugins: [],
   important: '#inlay-manager-container',
 }
